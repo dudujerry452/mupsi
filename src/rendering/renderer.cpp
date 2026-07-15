@@ -5,11 +5,6 @@
 
 using namespace mupsi;
 
-int Renderer::getidx(int x, int y) const
-{
-  return y * width + x;
-}
-
 Renderer::Renderer(int width, int height) : width(width), height(height)
 {
   framebuffer = new Color[width * height];
@@ -61,4 +56,9 @@ void Renderer::save(const std::string &filename) const
     }
     cv::imwrite(filename, img);
   }
+}
+
+int Renderer::getidx(int x, int y) const
+{
+  return y * width + x;
 }
