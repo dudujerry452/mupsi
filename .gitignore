@@ -1,0 +1,7 @@
+build/
+.flake/
+.direnv/
+*.ppm
+*.png
+*.exr
+*.jpg
