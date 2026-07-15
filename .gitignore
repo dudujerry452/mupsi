@@ -6,3 +6,4 @@ doc/
 *.png
 *.exr
 *.jpg
+compile_commands.json

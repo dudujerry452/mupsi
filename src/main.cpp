@@ -3,7 +3,12 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-int main() {
+#include "rendering/renderer.h"
+
+using namespace mupsi;
+
+int main()
+{
     std::cout << "mupsi v0.1 — μ + ψ" << std::endl;
 
     // sanity check
@@ -12,6 +17,10 @@ int main() {
 
     cv::Mat img(64, 64, CV_8UC3, cv::Scalar(128, 0, 0));
     std::cout << "OpenCV ok: " << img.rows << "x" << img.cols << std::endl;
+
+    Renderer renderer(256, 256);
+
+    renderer.save("test.png");
 
     return 0;
 }
