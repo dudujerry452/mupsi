@@ -9,8 +9,8 @@ namespace mupsi
   class Object
   {
   public:
-    Object();
-    virtual ~Object();
+    Object() = default;
+    virtual ~Object() = default;
 
   private:
   };
@@ -18,8 +18,8 @@ namespace mupsi
   class SDFObject : public Object
   {
   public:
-    SDFObject();
-    virtual ~SDFObject();
+    SDFObject() = default;
+    virtual ~SDFObject() = default;
 
     virtual float eval(const Vector3f &point) const = 0;
   };
@@ -27,10 +27,14 @@ namespace mupsi
   class SDFSphere : public SDFObject
   {
   public:
-    SDFSphere(float radius);
-    virtual ~SDFSphere();
+    SDFSphere(Vector3f center, float radius);
+    virtual ~SDFSphere() = default;
 
     float eval(const Vector3f &point) const override;
+
+  private:
+    Vector3f center;
+    float radius;
   };
 }
 
