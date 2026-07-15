@@ -2,7 +2,7 @@
 
 using namespace mupsi;
 
-SDFSphere::SDFSphere(Vector3f center, float radius) : center(center), radius(radius)
+SDFSphere::SDFSphere(const Vector3f &center, float radius) : center(center), radius(radius)
 {
 }
 

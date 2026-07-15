@@ -27,7 +27,7 @@ namespace mupsi
   class SDFSphere : public SDFObject
   {
   public:
-    SDFSphere(Vector3f center, float radius);
+    SDFSphere(const Vector3f &center, float radius);
     virtual ~SDFSphere() = default;
 
     float eval(const Vector3f &point) const override;

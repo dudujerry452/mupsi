@@ -7,12 +7,29 @@ using namespace mupsi;
 
 Renderer::Renderer(int width, int height) : width(width), height(height)
 {
-  framebuffer = new Color[width * height];
+  framebuffer.resize(width * height);
   for (int i = 0; i < height; i++)
   {
     for (int j = 0; j < width; j++)
     {
-      framebuffer[getidx(j, i)].rgb = Vector3f(i / float(height) * 255, 0, 0);
+      framebuffer[getidx(j, i)].rgb = Vector3f(0, 0, 0);
+    }
+  }
+}
+
+void Renderer::render(const Scene &scene, const Camera &camera)
+{
+
+  for (int j = 0; j < height; j++)
+  {
+    for (int i = 0; i < width; i++)
+    {
+      float x = (i + 0.5) / width;
+      float y = (j + 0.5) / height;
+
+      Ray ray = camera.generateRay(x, y);
+
+      // SDF eval
     }
   }
 }

@@ -3,6 +3,7 @@
 
 #include <eigen3/Eigen/Eigen>
 #include "../geometry/scene.hpp"
+#include "camera.h"
 using namespace Eigen;
 
 namespace mupsi
@@ -18,12 +19,12 @@ namespace mupsi
   public:
     Renderer(int width, int height);
 
-    void render(const Scene &scene);
+    void render(const Scene &scene, const Camera &camera);
 
     void save(const std::string &filename) const;
 
   private:
-    Color *framebuffer;
+    std::vector<Color> framebuffer;
     int width, height;
 
     int getidx(int x, int y) const;
