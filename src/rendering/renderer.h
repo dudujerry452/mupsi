@@ -18,16 +18,26 @@ namespace mupsi
   {
   public:
     Renderer(int width, int height);
+    virtual ~Renderer() = default;
 
-    void render(const Scene &scene, const Camera &camera);
+    virtual void render(const Scene &scene, const Camera &camera) = 0;
 
-    void save(const std::string &filename) const;
+    virtual void save(const std::string &filename) const;
 
-  private:
+  protected:
     std::vector<Color> framebuffer;
     int width, height;
 
     int getidx(int x, int y) const;
+  };
+
+  class SDFRenderer : public Renderer
+  {
+  public:
+    SDFRenderer(int width, int height);
+    virtual ~SDFRenderer() = default;
+
+    void render(const Scene &scene, const Camera &camera) override;
   };
 
 }

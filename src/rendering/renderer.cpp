@@ -17,23 +17,6 @@ Renderer::Renderer(int width, int height) : width(width), height(height)
   }
 }
 
-void Renderer::render(const Scene &scene, const Camera &camera)
-{
-
-  for (int j = 0; j < height; j++)
-  {
-    for (int i = 0; i < width; i++)
-    {
-      float x = (i + 0.5) / width;
-      float y = (j + 0.5) / height;
-
-      Ray ray = camera.generateRay(x, y);
-
-      // SDF eval
-    }
-  }
-}
-
 void Renderer::save(const std::string &filename) const
 {
   // 判断是否 HDR 格式（EXR, HDR）
@@ -78,4 +61,25 @@ void Renderer::save(const std::string &filename) const
 int Renderer::getidx(int x, int y) const
 {
   return y * width + x;
+}
+
+SDFRenderer::SDFRenderer(int width, int height) : Renderer(width, height)
+{
+}
+
+void SDFRenderer::render(const Scene &scene, const Camera &camera)
+{
+
+  for (int j = 0; j < height; j++)
+  {
+    for (int i = 0; i < width; i++)
+    {
+      float x = (i + 0.5) / width;
+      float y = (j + 0.5) / height;
+
+      Ray ray = camera.generateRay(x, y);
+
+      // SDF eval
+    }
+  }
 }
