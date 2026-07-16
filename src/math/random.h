@@ -88,13 +88,12 @@ public:
 
     float sign() { return Bernoulli(next1D(), -1.0f, 1.0f, 0.5f); }
 
-    // Box-Muller: N(0,1) (caches spare for even/odd calls)
+    // Box-Muller: N(0,1)
     float standard_normal() {
-        float u1 = next1D();
+        float u1 = 1.0f - next1D();  // (0, 1], safe for log
         float u2 = next1D();
         float r  = std::sqrt(-2.0f * std::log(u1));
         float a  = 2.0f * float(M_PI) * u2;
-        // use cosine only, discard sine (simpler but wastes 1 normal per call)
         return r * std::cos(a);
     }
 };

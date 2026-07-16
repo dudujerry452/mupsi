@@ -85,7 +85,7 @@ float GPScene::eval(const Vector3f &pos) const
   SEKernel kernel(lengthScale_); 
 
   static float amplitude = 0.1f;
-  float psi = gp_eval(pos, kernel, 3, cellSize_, 42) * amplitude; 
+  float psi = gp_eval(pos, kernel, 100, cellSize_, 42) * amplitude; 
   // std::cout << "mu = " << mu << ", psi = " << psi << std::endl;
   return mu + psi;
 }
