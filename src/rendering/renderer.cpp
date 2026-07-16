@@ -49,7 +49,13 @@ namespace mupsi
 
         // calculate intersection
 
-        
+        Intersection its = scene.castRay(ray);
+        if (its.hit)
+        {
+          Vector3f light(-1, -1, -0.5); 
+          Vector3f lightemit(0.0, 1.0, 0.0); 
+          fb_(i, j) = Color({lightemit * std::max(0.0f, (light.normalized()).dot(its.normal))}); 
+        }
       }
     }
   }
