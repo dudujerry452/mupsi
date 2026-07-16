@@ -1,21 +1,18 @@
-#include "scene.hpp"
+#include "scene.h"
 #include <memory>
 #include <iostream>
 
 using namespace mupsi;
 
-Scene::Scene()
+SDFScene::SDFScene()
 {
 }
 
-void Scene::add(std::unique_ptr<Object> obj)
+void SDFScene::add(std::unique_ptr<SDFObject> obj)
 {
   objects.push_back(std::move(obj));
 }
 
-SDFScene::SDFScene() : Scene()
-{
-}
 
 float SDFScene::eval(const Vector3f &pos) const
 {

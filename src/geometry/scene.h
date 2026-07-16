@@ -1,7 +1,7 @@
-#ifndef _SCENE_HPP_
-#define _SCENE_HPP_
+#ifndef _SCENE_H_
+#define _SCENE_H_
 
-#include "object.hpp"
+#include "object.h"
 #include "ray.h"
 #include <memory>
 #include <vector>
@@ -17,26 +17,19 @@ namespace mupsi
     Vector3f normal;
   };
 
-  class Scene
-  {
-  public:
-    Scene();
-    virtual ~Scene() = default;
-
-    void add(std::unique_ptr<Object> obj);
-
-  protected:
-    std::vector<std::unique_ptr<Object>> objects;
-  };
-
-  class SDFScene : public Scene
+  class SDFScene
   {
   public:
     SDFScene();
     virtual ~SDFScene() = default;
 
+    void add(std::unique_ptr<SDFObject> obj);
+
     float eval(const Vector3f &pos) const;
     Intersection castRay(const Ray &ray) const;
+
+    protected:
+    std::vector<std::unique_ptr<SDFObject>> objects;
   };
 }
 

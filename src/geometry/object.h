@@ -1,5 +1,5 @@
-#ifndef _SDF_HPP_
-#define _SDF_HPP_
+#ifndef _SDF_H_
+#define _SDF_H_
 
 #include <eigen3/Eigen/Eigen>
 using namespace Eigen;
