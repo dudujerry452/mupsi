@@ -1,5 +1,6 @@
 #include "scene.hpp"
 #include <memory>
+#include <iostream>
 
 using namespace mupsi;
 
@@ -30,9 +31,9 @@ float SDFScene::eval(const Vector3f &pos) const
 
 Intersection SDFScene::castRay(const Ray &ray) const
 {
-  float t = 0.0, hitpoint = 0.0;
+  float t = 0.0;
   bool hit = false;
-  static const float eps = 0.001, dt = 0.01;
+  static const float eps = 0.01, dt = 0.1;
   static const int depth = 50, binarynum = 3;
 
   if (eval(ray.getOrigin() + ray.getDirection()) < eps) // start point is inside the object
@@ -44,9 +45,11 @@ Intersection SDFScene::castRay(const Ray &ray) const
       Vector3f pos = ray.getOrigin() +
                      ray.getDirection() * t;
       float v = eval(pos);
+      // std::cout << v << std::endl; 
 
       if (v < eps)
       {
+        // std::cout << "hit" << std::endl; 
         float l = -dt, r = 0, mid = -dt / 2;
         for (int j = 0; j < binarynum; j++)
         {

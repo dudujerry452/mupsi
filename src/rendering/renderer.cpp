@@ -19,6 +19,7 @@ namespace mupsi
         float y = (j + 0.5f) / fb_.height();
 
         Ray ray = camera.generateRay(x, y);
+        // std::cout << "ray = " << ray.getDirection() << " " << std:: endl; 
 
         // calculate intersection
 
@@ -26,8 +27,8 @@ namespace mupsi
         if (its.hit)
         {
           Vector3f light(1, -1, 0); 
-          Vector3f lightemit(0.0, 50.0, 0.0); 
-          fb_(i, j) = Color({lightemit * light.dot(its.normal)}); 
+          Vector3f lightemit(0.0, 1.0, 0.0); 
+          fb_(i, j) = Color({lightemit * std::max(0.0f, (-light.normalized()).dot(its.normal))}); 
         }
       }
     }
