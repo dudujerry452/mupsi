@@ -6,13 +6,40 @@ using namespace Eigen;
 
 namespace mupsi
 {
+
+  struct Bounding 
+  {
+    Vector3f minpos, maxpos; 
+    Bounding(): minpos(Vector3f::Zero()), maxpos(Vector3f::Zero()) {};
+    Bounding(const Vector3f& minpos, const Vector3f& maxpos): minpos(minpos), maxpos(maxpos) {};
+
+    Vector3f getInterPos(const Vector3f& pos) const{
+      return (pos - minpos); 
+    };
+    Vector3f getOuterPos(const Vector3f& pos) const{
+      return (pos + minpos); 
+    };
+
+    Bounding operator*(const Bounding& other) const{
+      return Bounding(minpos.cwiseMin(other.minpos), maxpos.cwiseMax(other.maxpos)); 
+    }; // 求交
+    Bounding operator+(const Bounding& other) const{
+      return Bounding(minpos.cwiseMax(other.minpos), maxpos.cwiseMin(other.maxpos)); 
+    }; // 求并
+    
+  };
+
+
   class Object
   {
   public:
     Object() = default;
     virtual ~Object() = default;
 
-  private:
+    virtual Bounding getBounding() const = 0;
+  
+  protected: 
+    Bounding bounding; 
   };
 
   class SDFObject : public Object

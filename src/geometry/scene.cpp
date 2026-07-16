@@ -1,6 +1,7 @@
 #include "scene.h"
 #include <memory>
 #include <iostream>
+#include "../gp/gp_eval.h"
 
 using namespace mupsi;
 
@@ -11,6 +12,7 @@ SDFScene::SDFScene()
 void SDFScene::add(std::unique_ptr<SDFObject> obj)
 {
   objects.push_back(std::move(obj));
+  bounding = bounding + objects.back()->getBounding();
 }
 
 
@@ -76,10 +78,18 @@ Intersection SDFScene::castRay(const Ray &ray) const
   return Intersection{hit, t, ray.getOrigin() + ray.getDirection() * t, normal}; // Placeholder normal, replace with actual normal calculation
 }
 
-GPScene::GPScene(): SDFScene() {}
+float GPScene::eval(const Vector3f &pos) const
+{
+  float mu = SDFScene::eval(pos);
+
+  SEKernel kernel(lengthScale_); 
+
+  static float ampitude = 0.1; 
+  return mu + gp_eval(pos, kernel, 10, cellSize_, lengthScale_, 42) * ampitude;
+}
 
 Intersection GPScene::castRay(const Ray& ray) const 
 {
-  
+
 
 }
