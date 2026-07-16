@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include <iostream>
 
 namespace mupsi
 {
@@ -25,8 +26,8 @@ namespace mupsi
         if (its.hit)
         {
           Vector3f light(1, -1, 0); 
-          Vector3f lightemit(0.0, 1.0, 0.0); 
-          fb_(i, j) = Color(lightemit * light.dot(its.normal)); 
+          Vector3f lightemit(0.0, 50.0, 0.0); 
+          fb_(i, j) = Color({lightemit * light.dot(its.normal)}); 
         }
       }
     }
