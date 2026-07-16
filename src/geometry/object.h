@@ -59,6 +59,8 @@ namespace mupsi
 
     float eval(const Vector3f &point) const override;
 
+    virtual Bounding getBounding() const override; 
+
   private:
     Vector3f center;
     float radius;

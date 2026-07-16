@@ -11,3 +11,8 @@ float SDFSphere::eval(const Vector3f &point) const
 {
   return (point - center).norm() - radius;
 }
+
+Bounding SDFSphere::getBounding() const
+{
+  return bounding; 
+}

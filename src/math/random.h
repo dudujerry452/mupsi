@@ -14,8 +14,8 @@ template<typename... Args>
 uint32_t make_seed(Args... args) {
   auto tup = std::make_tuple(static_cast<uint32_t>(args)...); 
   uint32_t h = 0; 
-  std::apply([](auto... vals){
-    (hash_combine(h, vals)...); 
+  std::apply([&](auto... vals){
+    (hash_combine(h, vals), ...); 
   }, tup); 
   return h; 
 }

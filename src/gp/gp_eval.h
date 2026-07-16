@@ -5,7 +5,7 @@
 
 namespace mupsi {
 
-float gp_eval(const Vector3f& pos, const SEKernel& kernel, int points_per_cell, float cell_size, float length_scale, uint32_t seed); 
+float gp_eval(const Vector3f& pos, const SEKernel& kernel, int points_per_cell, float cell_size, uint32_t g_seed); 
 
 }
 

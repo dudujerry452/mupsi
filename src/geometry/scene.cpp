@@ -84,8 +84,8 @@ float GPScene::eval(const Vector3f &pos) const
 
   SEKernel kernel(lengthScale_); 
 
-  static float ampitude = 0.1; 
-  return mu + gp_eval(pos, kernel, 10, cellSize_, lengthScale_, 42) * ampitude;
+  static float amplitude = 0.1;
+  return mu + gp_eval(pos, kernel, 10, cellSize_, 42) * amplitude;
 }
 
 
