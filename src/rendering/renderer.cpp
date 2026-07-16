@@ -1,85 +1,39 @@
 #include "renderer.h"
-#include <algorithm>
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
 
-using namespace mupsi;
-
-Renderer::Renderer(int width, int height) : width(width), height(height)
+namespace mupsi
 {
-  framebuffer.resize(width * height);
-  for (int i = 0; i < height; i++)
+
+  Renderer::Renderer(int width, int height)
+      : fb_(width, height)
   {
-    for (int j = 0; j < width; j++)
-    {
-      framebuffer[getidx(j, i)].rgb = Vector3f(0, 0, 0);
-    }
   }
-}
 
-void Renderer::save(const std::string &filename) const
-{
-  // 判断是否 HDR 格式（EXR, HDR）
-  bool isHdr = filename.ends_with(".exr") || filename.ends_with(".hdr");
-
-  if (isHdr)
+  void Renderer::render(const SDFScene &scene, const Camera &camera)
   {
-    // 浮点通道直接写，不转换
-    cv::Mat img(height, width, CV_32FC3);
-    for (int y = 0; y < height; y++)
+    for (int j = 0; j < fb_.height(); j++)
     {
-      for (int x = 0; x < width; x++)
+      for (int i = 0; i < fb_.width(); i++)
       {
-        const auto &c = framebuffer[getidx(x, y)].rgb;
-        img.at<cv::Vec3f>(height - 1 - y, x) = cv::Vec3f(c.x(), c.y(), c.z()); // 转换坐标系
+        float x = (i + 0.5f) / fb_.width();
+        float y = (j + 0.5f) / fb_.height();
+
+        Ray ray = camera.generateRay(x, y);
+
+        // TODO: ray marching + shading
+
+        float t = 0.0, dt = 0.01;
+        int depth = 50;
+
+        bool flag = 0;
+        for (int i = 0; i < depth; i++)
+        {
+          t += dt;
+          Vector3f pos = ray.getOrigin() +
+                         ray.getDirection() * t;
+          float v = scene.eval(pos);
+        }
       }
     }
-    cv::imwrite(filename, img);
   }
-  else
-  {
-    // LDR 格式: 色调映射 + 转 8-bit
-    cv::Mat img(height, width, CV_8UC3);
-    for (int y = 0; y < height; y++)
-    {
-      for (int x = 0; x < width; x++)
-      {
-        const auto &c = framebuffer[getidx(x, y)].rgb;
-        // Reinhard 色调映射: x/(1+x), 然后 clamp 到 [0,1]
-        auto tone = [](float v)
-        { return v / (1.0f + v); };
-        img.at<cv::Vec3b>(height - 1 - y, x) = cv::Vec3b(
-            uint8_t(std::clamp(tone(c.x()), 0.0f, 1.0f) * 255.0f),
-            uint8_t(std::clamp(tone(c.y()), 0.0f, 1.0f) * 255.0f),
-            uint8_t(std::clamp(tone(c.z()), 0.0f, 1.0f) * 255.0f));
-      }
-    }
-    cv::imwrite(filename, img);
-  }
-}
 
-int Renderer::getidx(int x, int y) const
-{
-  return y * width + x;
-}
-
-SDFRenderer::SDFRenderer(int width, int height) : Renderer(width, height)
-{
-}
-
-void SDFRenderer::render(const Scene &scene, const Camera &camera)
-{
-
-  for (int j = 0; j < height; j++)
-  {
-    for (int i = 0; i < width; i++)
-    {
-      float x = (i + 0.5) / width;
-      float y = (j + 0.5) / height;
-
-      Ray ray = camera.generateRay(x, y);
-
-      // SDF eval
-    }
-  }
-}
+} // namespace mupsi
