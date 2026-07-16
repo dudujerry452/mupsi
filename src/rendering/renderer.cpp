@@ -4,10 +4,9 @@
 namespace mupsi
 {
 
-  SDFRenderer::SDFRenderer(int width, int height)
-      : fb_(width, height)
-  {
-  }
+  Renderer::Renderer(int width, int height): fb_(width, height) {}
+
+  SDFRenderer::SDFRenderer(int width, int height): Renderer(width, height) {}
 
   void SDFRenderer::render(const SDFScene &scene, const Camera &camera)
   {
@@ -34,10 +33,7 @@ namespace mupsi
     }
   }
 
-   GPRenderer::GPRenderer(int width, int height)
-      : fb_(width, height)
-  {
-  }
+   GPRenderer::GPRenderer(int width, int height): Renderer(width, height) {}
 
   void GPRenderer::render(const SDFScene &scene, const Camera &camera)
   {

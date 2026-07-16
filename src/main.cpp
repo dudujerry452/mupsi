@@ -24,7 +24,7 @@ int main()
 
     Camera camera(Vector3f{0.0, 0.0, -3.0}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
 
-    Renderer renderer(256, 256);
+    SDFRenderer renderer(256, 256);
     renderer.render(scene, camera);
 
     renderer.save("test.png");
