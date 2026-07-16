@@ -18,7 +18,9 @@ float gp_eval(const Vector3f& pos, const SEKernel& kernel, int points_per_cell, 
 
         for(int i = 0; i < points_per_cell; i++) {
 
-          Vector3f offset = Vector3f(rng.uniform(), rng.uniform(), rng.uniform()) * cell_size;
+          Vector3f offset = Vector3f(rng.uniform(), rng.uniform(), rng.uniform()); 
+          if (offset.norm() > 1.0) continue; // only sample points inside the unit sphere
+          offset = offset * cell_size;
           Vector3f sample_point = ngbf + offset;
           
           sum += rng.standard_normal() * kernel.h(sample_point, pos);
