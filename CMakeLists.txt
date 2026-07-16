@@ -9,6 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ——— dependencies ———
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(OpenMP REQUIRED)
 
 # ——— sources ———
 file(GLOB_RECURSE MUPSI_SOURCES src/*.cpp src/*.hpp src/*.h)
@@ -22,6 +23,7 @@ target_include_directories(mupsi PRIVATE
 
 target_link_libraries(mupsi PRIVATE
     ${OpenCV_LIBS}
+    OpenMP::OpenMP_CXX
 )
 
 # ——— compiler flags ———
