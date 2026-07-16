@@ -15,6 +15,8 @@ namespace mupsi
     {
       for (int i = 0; i < fb_.width(); i++)
       {
+        // i = 127; j = 127; 
+
         float x = (i + 0.5f) / fb_.width();
         float y = (j + 0.5f) / fb_.height();
 
@@ -26,11 +28,13 @@ namespace mupsi
         Intersection its = scene.castRay(ray);
         if (its.hit)
         {
-          Vector3f light(1, -1, 0); 
+          Vector3f light(1, 1, 0.5); 
           Vector3f lightemit(0.0, 1.0, 0.0); 
           fb_(i, j) = Color({lightemit * std::max(0.0f, (-light.normalized()).dot(its.normal))}); 
         }
+        // break; 
       }
+      // break; 
     }
   }
 

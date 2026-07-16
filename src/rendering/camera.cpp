@@ -13,5 +13,5 @@ Ray Camera::generateRay(float x, float y) const
   // transform to world space
   Vector3f ray_dir_world = (right * ray_dir_camera.x() + true_up * ray_dir_camera.y() + direction * ray_dir_camera.z()).normalized();
 
-  return Ray(position, ray_dir_world);
+  return Ray(position, ray_dir_world.normalized());
 }

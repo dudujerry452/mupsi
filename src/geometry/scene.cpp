@@ -36,8 +36,8 @@ Intersection SDFScene::castRay(const Ray &ray) const
   static const float eps = 0.01, dt = 0.1;
   static const int depth = 50, binarynum = 3;
 
-  if (eval(ray.getOrigin() + ray.getDirection()) < eps) // start point is inside the object
-    ;                                                   // not sure how to deal with it
+  if (eval(ray.getOrigin()) < eps) // start point is inside the object
+    ;                                               // not sure how to deal with it
   else
     for (int i = 0; i < depth; i++)
     {
