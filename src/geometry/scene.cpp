@@ -45,11 +45,9 @@ Intersection SDFScene::castRay(const Ray &ray) const
       Vector3f pos = ray.getOrigin() +
                      ray.getDirection() * t;
       float v = eval(pos);
-      // std::cout << v << std::endl; 
 
       if (v < eps)
       {
-        // std::cout << "hit" << std::endl; 
         float l = -dt, r = 0, mid = -dt / 2;
         for (int j = 0; j < binarynum; j++)
         {
@@ -58,6 +56,7 @@ Intersection SDFScene::castRay(const Ray &ray) const
             r = mid;
           else
             l = mid;
+          mid = (l+r)/2; 
         }
         hit = true;
         break;
