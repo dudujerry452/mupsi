@@ -19,18 +19,14 @@ namespace mupsi
 
         Ray ray = camera.generateRay(x, y);
 
-        // TODO: ray marching + shading
+        // calculate intersection
 
-        float t = 0.0, dt = 0.01;
-        int depth = 50;
-
-        bool flag = 0;
-        for (int i = 0; i < depth; i++)
+        Intersection its = scene.castRay(ray);
+        if (its.hit)
         {
-          t += dt;
-          Vector3f pos = ray.getOrigin() +
-                         ray.getDirection() * t;
-          float v = scene.eval(pos);
+          Vector3f light(1, -1, 0); 
+          Vector3f lightemit(0.0, 1.0, 0.0); 
+          fb_(i, j) = Color(lightemit * light.dot(its.normal)); 
         }
       }
     }
