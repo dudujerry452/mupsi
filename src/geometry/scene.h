@@ -33,7 +33,7 @@ namespace mupsi
     Bounding bounding;
   };
 
-  class GPScene: SDFScene
+  class GPScene: public SDFScene
   {
   public:
     GPScene(float cellSize, float lengthScale): SDFScene(), cellSize_(cellSize), lengthScale_(lengthScale) {};

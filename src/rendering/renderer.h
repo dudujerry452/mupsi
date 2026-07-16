@@ -26,7 +26,7 @@ class GPRenderer: public Renderer {
 public:
     GPRenderer(int width, int height);
 
-    void render(const SDFScene& scene, const Camera& camera);
+    void render(const GPScene& scene, const Camera& camera);
 };
 
 } // namespace mupsi

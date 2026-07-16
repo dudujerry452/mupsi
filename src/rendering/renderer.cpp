@@ -35,7 +35,7 @@ namespace mupsi
 
    GPRenderer::GPRenderer(int width, int height): Renderer(width, height) {}
 
-  void GPRenderer::render(const SDFScene &scene, const Camera &camera)
+  void GPRenderer::render(const GPScene &scene, const Camera &camera)
   {
     for (int j = 0; j < fb_.height(); j++)
     {
