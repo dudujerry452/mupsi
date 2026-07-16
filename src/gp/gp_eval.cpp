@@ -22,7 +22,7 @@ float gp_eval(const Vector3f& pos, const SEKernel& kernel, int points_per_cell, 
           if (offset.squaredNorm() > 1.0f) continue;
           Vector3f sample_point = ngbf + offset * cell_size;
 
-          sum += rng.sign() * kernel.h(sample_point, pos);
+          sum += rng.standard_normal() * kernel.h(sample_point, pos);
         }
       }
     }

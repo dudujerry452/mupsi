@@ -20,7 +20,7 @@ int main()
     std::cout << "OpenCV ok: " << img.rows << "x" << img.cols << std::endl;
 
     GPScene scene(3, 1.0); 
-    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, -0.5}, 2.0)); 
+    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, -0.9}, 2.0)); 
 
     Camera camera(Vector3f{0.0, 0.0, -3.0}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
 
