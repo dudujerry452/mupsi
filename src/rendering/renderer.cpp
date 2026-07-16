@@ -33,12 +33,13 @@ namespace mupsi
     }
   }
 
-   GPRenderer::GPRenderer(int width, int height): Renderer(width, height) {}
+  GPRenderer::GPRenderer(int width, int height): Renderer(width, height) {}
 
   void GPRenderer::render(const GPScene &scene, const Camera &camera)
   {
     for (int j = 0; j < fb_.height(); j++)
     {
+      std::cout << "start" << j << " " << std::endl;
       for (int i = 0; i < fb_.width(); i++)
       {
 

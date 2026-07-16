@@ -85,7 +85,9 @@ float GPScene::eval(const Vector3f &pos) const
   SEKernel kernel(lengthScale_); 
 
   static float amplitude = 0.1;
-  return mu + gp_eval(pos, kernel, 10, cellSize_, 42) * amplitude;
+  float psi = gp_eval(pos, kernel, 100, cellSize_, 42) * amplitude; 
+  // std::cout << "mu = " << mu << ", psi = " << psi << std::endl;
+  return mu + psi;
 }
 
 
@@ -93,8 +95,8 @@ Intersection GPScene::castRay(const Ray &ray) const
 {
   float t = 0.0;
   bool hit = false;
-  static const float eps = 0.01, dt = 0.1;
-  static const int depth = 50, binarynum = 3;
+  static const float eps = 0.01, dt = 0.5;
+  static const int depth = 20, binarynum = 3;
 
   if (eval(ray.getOrigin()) < eps) // start point is inside the object
     ;                                               // not sure how to deal with it
