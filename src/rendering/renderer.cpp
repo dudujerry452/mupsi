@@ -4,12 +4,12 @@
 namespace mupsi
 {
 
-  Renderer::Renderer(int width, int height)
+  SDFRenderer::SDFRenderer(int width, int height)
       : fb_(width, height)
   {
   }
 
-  void Renderer::render(const SDFScene &scene, const Camera &camera)
+  void SDFRenderer::render(const SDFScene &scene, const Camera &camera)
   {
     for (int j = 0; j < fb_.height(); j++)
     {
@@ -33,5 +33,30 @@ namespace mupsi
       }
     }
   }
+
+   GPRenderer::GPRenderer(int width, int height)
+      : fb_(width, height)
+  {
+  }
+
+  void GPRenderer::render(const SDFScene &scene, const Camera &camera)
+  {
+    for (int j = 0; j < fb_.height(); j++)
+    {
+      for (int i = 0; i < fb_.width(); i++)
+      {
+
+        float x = (i + 0.5f) / fb_.width();
+        float y = (j + 0.5f) / fb_.height();
+
+        Ray ray = camera.generateRay(x, y);
+
+        // calculate intersection
+
+        
+      }
+    }
+  }
+
 
 } // namespace mupsi

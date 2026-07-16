@@ -75,3 +75,11 @@ Intersection SDFScene::castRay(const Ray &ray) const
 
   return Intersection{hit, t, ray.getOrigin() + ray.getDirection() * t, normal}; // Placeholder normal, replace with actual normal calculation
 }
+
+GPScene::GPScene(): SDFScene() {}
+
+Intersection GPScene::castRay(const Ray& ray) const 
+{
+  
+
+}

@@ -26,10 +26,19 @@ namespace mupsi
     void add(std::unique_ptr<SDFObject> obj);
 
     float eval(const Vector3f &pos) const;
-    Intersection castRay(const Ray &ray) const;
+    virtual Intersection castRay(const Ray &ray) const;
 
     protected:
     std::vector<std::unique_ptr<SDFObject>> objects;
+  };
+
+  class GPScene: SDFScene
+  {
+  public:
+    GPScene();
+    virtual ~GPScene() = default;
+
+    Intersection castRay(const Ray &ray) const override;
   };
 }
 

@@ -6,9 +6,20 @@
 
 namespace mupsi {
 
-class Renderer {
+class SDFRenderer {
 public:
-    Renderer(int width, int height);
+    SDFRenderer(int width, int height);
+
+    void render(const SDFScene& scene, const Camera& camera);
+    void save(const std::string& filename) const { fb_.save(filename); }
+
+private:
+    Framebuffer fb_;
+};
+
+class GPRenderer {
+public:
+    GPRenderer(int width, int height);
 
     void render(const SDFScene& scene, const Camera& camera);
     void save(const std::string& filename) const { fb_.save(filename); }
