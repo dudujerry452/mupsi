@@ -26,7 +26,6 @@ namespace mupsi
     void add(std::unique_ptr<SDFObject> obj);
 
     virtual float eval(const Vector3f &pos) const;
-    virtual Intersection castRay(const Ray &ray) const;
 
     protected:
     std::vector<std::unique_ptr<SDFObject>> objects;
@@ -41,7 +40,6 @@ namespace mupsi
     virtual ~GPScene() = default;
 
     float eval(const Vector3f &pos) const override;
-    Intersection castRay(const Ray &ray) const override;
 
   private:
     float cellSize_;
