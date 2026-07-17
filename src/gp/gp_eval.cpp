@@ -27,6 +27,10 @@ float gp_eval(const Vector3f& pos, const SEKernel& kernel, int points_per_cell, 
       }
     }
   }
+  // Vector3i cell = (pos/cell_size).cast<int>();
+  // Random rng(make_seed(cell.x(), cell.y(), cell.z(), g_seed));  
+  // Vector3f sample_point(0.0f, 0.0f, -2.0f); 
+  // float sum = rng.standard_normal() * kernel.h(sample_point, pos);
   
   return sum;
 }

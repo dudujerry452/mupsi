@@ -19,11 +19,11 @@ int main()
     cv::Mat img(64, 64, CV_8UC3, cv::Scalar(128, 0, 0));
     std::cout << "OpenCV ok: " << img.rows << "x" << img.cols << std::endl;
 
-    GPScene scene(10.0, 1.0, 0.1f, 100, 42);  // cellSize, lengthScale, amplitude, pointsPerCell, seed (matching sparse-gpis single-realization defaults) 
-    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, 0.0}, 2.0)); 
+    GPScene scene(3.0, 1.0f, 5.0f, 3, 42);  // cellSize, lengthScale, amplitude, pointsPerCell, seed (matching sparse-gpis single-realization defaults) 
+    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, 0.0}, 200.0)); 
 
-    Camera camera(Vector3f{0.0, 0.0, -2.1}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
-    // Camera camera(Vector3f{-2.1, 0.0, 0}, Vector3f{1.0, 0.0, 0.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
+    Camera camera(Vector3f{0.0, 0.0, -300}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
+    // Camera camera(Vector3f{-5, 0.0, 0}, Vector3f{1.0, 0.0, 0.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
 
     GPRenderer renderer(1024, 1024);
     renderer.render(scene, camera);

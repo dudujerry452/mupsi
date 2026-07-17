@@ -94,8 +94,8 @@ Intersection GPScene::castRay(const Ray &ray) const
 {
   float t = 0.0;
   bool hit = false;
-  static const float eps = 0.01, dt = 0.5;
-  static const int depth = 20, binarynum = 3;
+  static const float eps = 0.01, dt = 1.0f;
+  static const int depth = 500, binarynum = 3;
 
   if (eval(ray.getOrigin()) < eps) // start point is inside the object
     ;                                               // not sure how to deal with it
