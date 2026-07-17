@@ -3,8 +3,24 @@
 
 #include <cstdint>
 #include <cmath>
+#include <tuple>
 
 namespace mupsi {
+
+// ——— hash_combine seed generation ———
+inline void hash_combine(uint32_t& seed, uint32_t v) {
+    seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+template<typename... Args>
+uint32_t make_seed(Args... args) {
+    auto tup = std::make_tuple(static_cast<uint32_t>(args)...);
+    uint32_t h = 0;
+    std::apply([&](auto... vals){
+        (hash_combine(h, vals), ...);
+    }, tup);
+    return h;
+}
 
 // ——— xxhash32 ——— (same as sparse-gpis)
 constexpr uint32_t PRIME32_2 = 2246822519U;
