@@ -13,11 +13,19 @@ int main()
     std::cout << "mupsi v0.1 — μ + ψ" << std::endl;
 
     // sanity check
-    Eigen::Vector3d v(1.0, 2.0, 3.0);
-    std::cout << "Eigen ok: " << v.transpose() << std::endl;
+    #ifdef _OPENMP
+        printf("OpenMP Enabled. Version: %d\n", _OPENMP);
 
-    cv::Mat img(64, 64, CV_8UC3, cv::Scalar(128, 0, 0));
-    std::cout << "OpenCV ok: " << img.rows << "x" << img.cols << std::endl;
+        int thread_count = 0;
+        #pragma omp parallel reduction(+:thread_count)
+        {
+            thread_count = 1;
+        }
+
+        printf("Active thread: %d\n", thread_count);
+    #else
+        printf("OpenMP is not enabled. \n");
+    #endif
 
     GPScene scene(3.0, 1.0f, 5.0f, 3, 42);  // cellSize, lengthScale, amplitude, pointsPerCell, seed (matching sparse-gpis single-realization defaults) 
     scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, 0.0}, 200.0)); 

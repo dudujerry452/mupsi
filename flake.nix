@@ -25,6 +25,7 @@
         ];
 
         shellHook = ''
+          export NIX_ENFORCE_NO_NATIVE=0
           echo "=== mupsi dev shell ==="
           echo "cmake  $(cmake --version | head -1 | cut -d' ' -f3)"
           echo "g++    $(g++ --version | head -1)"
