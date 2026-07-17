@@ -1,6 +1,7 @@
 build/
 .flake/
 .direnv/
+doc/
 *.ppm
 *.png
 *.exr
