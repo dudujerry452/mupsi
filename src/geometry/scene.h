@@ -36,15 +36,19 @@ namespace mupsi
   class GPScene: public SDFScene
   {
   public:
-    GPScene(float cellSize, float lengthScale): SDFScene(), cellSize_(cellSize), lengthScale_(lengthScale) {};
+    GPScene(float cellSize, float lengthScale, float amplitude, int pointsPerCell, uint32_t seed)
+        : SDFScene(), cellSize_(cellSize), lengthScale_(lengthScale), amplitude_(amplitude), pointsPerCell_(pointsPerCell), seed_(seed) {};
     virtual ~GPScene() = default;
 
     float eval(const Vector3f &pos) const override;
     Intersection castRay(const Ray &ray) const override;
 
-  private: 
+  private:
     float cellSize_;
-    float lengthScale_; 
+    float lengthScale_;
+    float amplitude_;
+    int pointsPerCell_;
+    uint32_t seed_;
   };
 }
 
