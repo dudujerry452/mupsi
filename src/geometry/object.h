@@ -1,7 +1,7 @@
 #ifndef _SDF_H_
 #define _SDF_H_
 
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Core>
 using namespace Eigen;
 
 namespace mupsi

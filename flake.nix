@@ -22,6 +22,7 @@
           gdb
           eigen
           opencv
+          nlohmann_json
         ];
 
         shellHook = ''

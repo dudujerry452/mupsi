@@ -1,5 +1,5 @@
 #include "gp_eval.h"
-#include "../math/random.h"
+#include "math/random.h"
 
 namespace mupsi {
 

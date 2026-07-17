@@ -4,13 +4,14 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include "io/config.h"
 #include "rendering/renderer.h"
 
 using namespace mupsi;
 
 int main()
 {
-    std::cout << "mupsi v0.1 — μ + ψ" << std::endl;
+    std::cout << "mupsi v0.1 — mu + psi" << std::endl;
 
     // sanity check
     #ifdef _OPENMP
@@ -27,14 +28,24 @@ int main()
         printf("OpenMP is not enabled. \n");
     #endif
 
-    // cellsize should be 3~4l, amplitude is chosen by user
-    GPScene scene(3.0, 1.0f, 5.0f, 3, 42);  // cellSize, lengthScale, amplitude, pointsPerCell, seed (matching sparse-gpis single-realization defaults) 
-    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, 0.0}, 200.0)); 
+    Config cfg;
+    try {
+        cfg = load_config("config.json");
+        std::cout << "config loaded successfully" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "config: " << e.what() << " — using defaults" << std::endl;
+    }
 
-    Camera camera(Vector3f{0.0, 0.0, -220}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
-    // Camera camera(Vector3f{-5, 0.0, 0}, Vector3f{1.0, 0.0, 0.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
+    g_rayTraceConfig = cfg.trace;
 
-    SDFRenderer renderer(256, 256);
+    GPScene scene(cfg.cell_size, cfg.length_scale, cfg.amplitude, cfg.points_per_cell, cfg.seed);
+
+    for (auto& s : cfg.spheres)
+        scene.add(std::make_unique<SDFSphere>(s.center, s.radius));
+
+    Camera camera(cfg.cam_pos, cfg.cam_dir, cfg.cam_up, cfg.cam_fov, cfg.cam_aspect_ratio);
+
+    SDFRenderer renderer(cfg.width, cfg.height);
     renderer.render(scene, camera);
 
     renderer.save("test.png");

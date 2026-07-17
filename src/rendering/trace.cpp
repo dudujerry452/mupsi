@@ -6,12 +6,14 @@ namespace mupsi {
 
 // note: cast Ray can trace both SDFScene and GPScene, GPScene's eval is overriden. 
 
+RayTraceConfig g_rayTraceConfig;
+
 Intersection castRay(const Ray &ray, const SDFScene &scene)
 {
   float t = 0.0;
   bool hit = false;
-  static const float eps = 0.01, dt = 1.0f;
-  static const int depth = 500, binarynum = 3;
+  const float &eps = g_rayTraceConfig.eps, &dt = g_rayTraceConfig.dt;
+  const int &depth = g_rayTraceConfig.depth, &binarynum = g_rayTraceConfig.binarynum;
 
   if (scene.eval(ray.getOrigin()) < eps) // start point is inside the object
     ;                                               // not sure how to deal with it

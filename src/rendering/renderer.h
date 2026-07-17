@@ -2,7 +2,7 @@
 
 #include "framebuffer.h"
 #include "camera.h"
-#include "../geometry/scene.h"
+#include "geometry/scene.h"
 
 namespace mupsi {
 

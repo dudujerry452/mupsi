@@ -7,3 +7,4 @@ doc/
 *.exr
 *.jpg
 compile_commands.json
+config.json

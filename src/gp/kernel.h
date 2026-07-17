@@ -1,7 +1,7 @@
 #ifndef _KERNEL_H_ 
 #define _KERNEL_H_ 
 
-#include <eigen3/Eigen/Core> 
+#include <Eigen/Core>
 
 using namespace Eigen; 
 

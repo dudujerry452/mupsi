@@ -1,7 +1,7 @@
 #include "scene.h"
 #include <memory>
 #include <iostream>
-#include "../gp/gp_eval.h"
+#include "gp/gp_eval.h"
 
 using namespace mupsi;
 
