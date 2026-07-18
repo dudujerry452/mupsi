@@ -14,6 +14,16 @@ static Eigen::Vector3f vec3_from_json(const json& j)
     return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>()};
 }
 
+static Config::MaterialConfig material_from_json(const json& j)
+{
+    Config::MaterialConfig m;
+    if (j.contains("Ka"))
+        m.Ka = vec3_from_json(j["Ka"]);
+    m.has_emission   = j.value("has_emission",   false);
+    m.emission_value = j.value("emission_value", 0.0f);
+    return m;
+}
+
 Config load_config(const std::string& path)
 {
     std::ifstream f(path);
@@ -29,6 +39,7 @@ Config load_config(const std::string& path)
         cfg.trace.depth     = t.value("depth",     cfg.trace.depth);
         cfg.trace.eps       = t.value("eps",       cfg.trace.eps);
         cfg.trace.binarynum = t.value("binarynum", cfg.trace.binarynum);
+        cfg.trace.max_bounce = t.value("max_bounce", cfg.trace.max_bounce);
     }
 
     if (j.contains("scene")) {
@@ -42,12 +53,30 @@ Config load_config(const std::string& path)
 
     if (j.contains("objects")) {
         for (auto& obj : j["objects"]) {
+            auto mat = material_from_json(obj);
             if (obj.value("type", "") == "sphere") {
                 cfg.spheres.push_back({
                     vec3_from_json(obj.at("center")),
-                    obj.at("radius").get<float>()
+                    obj.at("radius").get<float>(),
+                    mat
                 });
             }
+            else if (obj.value("type", "") == "cube") {
+                cfg.cubes.push_back({
+                    vec3_from_json(obj.at("center")),
+                    vec3_from_json(obj.at("size")),
+                    mat
+                });
+            }
+        }
+    }
+
+    if (j.contains("lights")) {
+        for (auto& l : j["lights"]) {
+            cfg.parallel_lights.push_back({
+                vec3_from_json(l.at("direction")),
+                vec3_from_json(l.at("intensity"))
+            });
         }
     }
 

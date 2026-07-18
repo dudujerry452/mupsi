@@ -28,13 +28,8 @@ namespace mupsi
 
         // calculate intersection
 
-        Intersection its = castRay(ray, scene);
-        if (its.hit)
-        {
-          Vector3f light(-1, -1, -0.5);
-          Vector3f lightemit(0.0, 1.0, 0.0);
-          fb_(i, j) = Color({lightemit * std::max(0.0f, (light.normalized()).dot(its.normal))});
-        }
+        Vector3f its = traceRay(ray, scene, 0);
+        fb_(i, j) = Color({its});
 
         int n = ++done;
         if (n % (total / 100) == 0) {

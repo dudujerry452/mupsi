@@ -4,6 +4,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include "geometry/material.h"
+#include "gp/gp_eval.h"
 #include "io/config.h"
 #include "rendering/renderer.h"
 
@@ -37,11 +39,22 @@ int main()
     }
 
     g_rayTraceConfig = cfg.trace;
+    g_gpSeed = cfg.seed;
 
-    GPScene scene(cfg.cell_size, cfg.length_scale, cfg.amplitude, cfg.points_per_cell, cfg.seed);
+    // GPScene scene(cfg.cell_size, cfg.length_scale, cfg.amplitude, cfg.points_per_cell);
+    SDFScene scene; 
 
-    for (auto& s : cfg.spheres)
-        scene.add(std::make_unique<SDFSphere>(s.center, s.radius));
+    for (auto& s : cfg.spheres) {
+        auto mat = std::make_shared<Material>(s.material.Ka, s.material.has_emission, s.material.emission_value);
+        scene.add(std::make_unique<SDFSphere>(s.center, s.radius, mat));
+    }
+    for (auto& c : cfg.cubes) {
+        auto mat = std::make_shared<Material>(c.material.Ka, c.material.has_emission, c.material.emission_value);
+        scene.add(std::make_unique<SDFCube>(c.center, c.size, mat));
+    }
+
+    for (auto& l : cfg.parallel_lights)
+        scene.addParallelLight({l.direction.normalized(), l.intensity});
 
     Camera camera(cfg.cam_pos, cfg.cam_dir, cfg.cam_up, cfg.cam_fov, cfg.cam_aspect_ratio);
 

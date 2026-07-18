@@ -11,11 +11,13 @@ struct RayTraceConfig {
   float depth = 50;  
   float eps = 0.01; 
   int binarynum = 3;
+  int max_bounce = 3; 
 };
 
 extern RayTraceConfig g_rayTraceConfig;
 
 Intersection castRay(const Ray &ray, const SDFScene &scene); 
+Vector3f traceRay(const Ray &ray, const SDFScene &scene, int depth);
 
 
 }
