@@ -41,8 +41,8 @@ int main()
     g_rayTraceConfig = cfg.trace;
     g_gpSeed = cfg.seed;
 
-    // GPScene scene(cfg.cell_size, cfg.length_scale, cfg.amplitude, cfg.points_per_cell);
-    SDFScene scene; 
+    GPScene scene(cfg.cell_size, cfg.length_scale, cfg.amplitude, cfg.points_per_cell);
+    // SDFScene scene; 
 
     for (auto& s : cfg.spheres) {
         auto mat = std::make_shared<Material>(s.material.Ka, s.material.has_emission, s.material.emission_value);

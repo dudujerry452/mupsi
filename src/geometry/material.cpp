@@ -12,7 +12,7 @@ namespace mupsi {
 Material g_defaultMaterial(Vector3f(0.0f, 0.0f, 1.0f), false, 0.0f);
 
 Vector3f Material::sampleHemisphere() const {
-  Random rng(g_gpSeed); 
+  Random rng(42);  // TODO: maybe another seed
   float x1 = rng.next1D(), x2 = rng.next1D(); 
   float z = std::fabs(1.0f - 2.0f * x1); // to [-1, 1]
   float r = std::sqrt(1.0 - z*z), phi = x2 * 2.0f * M_PI; 
