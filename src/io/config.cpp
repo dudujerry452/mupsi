@@ -49,6 +49,7 @@ Config load_config(const std::string& path)
         cfg.amplitude       = s.value("amplitude",       cfg.amplitude);
         cfg.points_per_cell = s.value("points_per_cell", cfg.points_per_cell);
         cfg.seed            = s.value("seed",            cfg.seed);
+        cfg.gp_mode         = s.value("gp_mode",         cfg.gp_mode);
     }
 
     if (j.contains("objects")) {

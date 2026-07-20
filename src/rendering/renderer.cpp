@@ -10,7 +10,7 @@ namespace mupsi
 
   SDFRenderer::SDFRenderer(int width, int height): Renderer(width, height) {}
 
-  void SDFRenderer::render(const SDFScene &scene, const Camera &camera)
+  void SDFRenderer::render(SDFScene &scene, const Camera &camera)
   {
     int total = fb_.height() * fb_.width();
     std::atomic<int> done{0};
@@ -25,6 +25,11 @@ namespace mupsi
         float y = (j + 0.5f) / fb_.height();
 
         Ray ray = camera.generateRay(x, y);
+
+        // set thread-local pixel context for per-bounce GP seed generation
+        g_pixel_x = i;
+        g_pixel_y = j;
+        g_spp = 0;
 
         // calculate intersection
 

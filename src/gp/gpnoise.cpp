@@ -4,17 +4,17 @@
 namespace mupsi {
 
 
-float GPNoiseGenerator::RawNoise(const Vector3f& pos) const 
+float GPNoiseGenerator::RawNoise(const Vector3f& pos, uint32_t seed) const
 {
 
   Vector3i cell = (pos/kernel.getKernelRadius()).cast<int>();
-  float sum = 0; 
+  float sum = 0;
   for(int dx = -1; dx <= 1; dx++) {
     for(int dy = -1; dy <= 1; dy++) {
       for(int dz = -1; dz <= 1; dz++) {
         Vector3i neighbor = cell + Vector3i(dx, dy, dz);
-        uint32_t seed = make_seed(neighbor.x(), neighbor.y(), neighbor.z(), gpseed);
-        Random rng(seed + 1u);  // +1 same as sparse-gpis
+        uint32_t cell_seed = make_seed(neighbor.x(), neighbor.y(), neighbor.z(), seed);
+        Random rng(cell_seed + 1u);  // +1 same as sparse-gpis
 
         Vector3f ngbf = neighbor.cast<float>() * kernel.getKernelRadius();
 

@@ -20,7 +20,7 @@ class SDFRenderer: public Renderer {
 public:
     SDFRenderer(int width, int height);
 
-    void render(const SDFScene& scene, const Camera& camera);
+    void render(SDFScene& scene, const Camera& camera);
 
 };
 

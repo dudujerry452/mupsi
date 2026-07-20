@@ -20,6 +20,7 @@ struct Config {
     float     amplitude       = 5.0f;
     int       points_per_cell = 3;
     uint32_t  seed            = 42;
+    std::string gp_mode       = "single_realization";
 
     // materials
     struct MaterialConfig {

@@ -20,8 +20,8 @@ namespace mupsi
   };
 
   struct ParallelLight {
-    Vector3f direction; 
-    Vector3f intensity; 
+    Vector3f direction;
+    Vector3f intensity;
   };
 
   class SDFScene
@@ -43,9 +43,13 @@ namespace mupsi
 
     std::vector<ParallelLight> parallel_lights;
 
-    public: 
-    friend Vector3f traceRay(const Ray &ray, const SDFScene &scene, int depth);
+    public:
+    friend Vector3f traceRay(const Ray &ray, SDFScene &scene, int depth);
   };
+
+  // Thread-local per-bounce seed, written by traceRay, read by GPScene::eval.
+  // Each OpenMP thread has its own copy — no data race on the shared GPScene instance.
+  extern thread_local uint32_t g_cond_seed;
 
   class GPScene: public SDFScene
   {
@@ -54,6 +58,12 @@ namespace mupsi
     virtual ~GPScene() = default;
 
     float eval(const Vector3f &pos, const SDFObject*& obj) const override;
+
+    void prepareConditioning(const Vector3f& C, const Vector3f& targetGrad, uint32_t nextSeed);
+    std::pair<ConditioningState, uint32_t> activateNextConditioning();
+    void restoreConditioning(const ConditioningState& cond, uint32_t seed);
+
+    const GPNoiseGenerator& getGPNoise() const { return gpnoise; }
 
   private:
     GPNoiseGenerator gpnoise;

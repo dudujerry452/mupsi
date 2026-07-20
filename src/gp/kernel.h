@@ -28,6 +28,16 @@ class SEKernel {
   }
 
 
+  Vector3f h_grad(const Vector3f& C, const Vector3f& p) const {
+    float L2 = lengthScale.squaredNorm();
+    float val = h(C, p);
+    return val * (-2.0f / L2) * (p - C);
+  }
+
+  float oneOverSecondDerivative() const {
+    return -lengthScale.squaredNorm() / 2.0f;
+  }
+
   float getSigma() const { return sigma; }
   float getKernelRadius() const { return kernelRadius; }
   Vector3f getLengthScale() const { return lengthScale; }  
