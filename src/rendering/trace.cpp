@@ -1,5 +1,4 @@
 #include "trace.h"
-#include "gp/gp_eval.h"
 #include "math/random.h"
 
 #include <Eigen/Geometry> 

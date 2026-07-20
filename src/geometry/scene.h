@@ -3,6 +3,7 @@
 
 #include "object.h"
 #include "ray.h"
+#include "gp/gpnoise.h"
 #include <memory>
 #include <vector>
 
@@ -49,17 +50,14 @@ namespace mupsi
   class GPScene: public SDFScene
   {
   public:
-    GPScene(float cellSize, float lengthScale, float amplitude, int pointsPerCell)
-        : SDFScene(), cellSize_(cellSize), lengthScale_(lengthScale), amplitude_(amplitude), pointsPerCell_(pointsPerCell) {};
+    GPScene(const GPNoiseGenerator& gp): SDFScene(), gpnoise(gp) {};
     virtual ~GPScene() = default;
 
     float eval(const Vector3f &pos, const SDFObject*& obj) const override;
 
   private:
-    float cellSize_;
-    float lengthScale_;
-    float amplitude_;
-    int pointsPerCell_;
+    GPNoiseGenerator gpnoise;
+
   };
 }
 

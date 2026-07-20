@@ -1,7 +1,7 @@
 #include "scene.h"
 #include <memory>
 #include <iostream>
-#include "gp/gp_eval.h"
+#include "gp/gpnoise.h"
 #include "rendering/trace.h"
 
 using namespace mupsi;
@@ -43,11 +43,6 @@ Vector3f SDFScene::getNormal(const Vector3f &pos) const {
 float GPScene::eval(const Vector3f &pos, const SDFObject*& obj) const
 {
   float mu = SDFScene::eval(pos, obj);
-
-  SEKernel kernel(lengthScale_); 
-
-  float psi = gp_eval(pos, kernel, pointsPerCell_, cellSize_) * amplitude_;
-  // std::cout << "mu = " << mu << ", psi = " << psi << std::endl;
-  return mu + psi;
+  return mu + gpnoise.Noise(pos); // mu + psi(p)
 }
 

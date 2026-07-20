@@ -5,11 +5,12 @@
 #include <opencv2/imgcodecs.hpp>
 
 #include "geometry/material.h"
-#include "gp/gp_eval.h"
+#include "gp/gpnoise.h"
 #include "io/config.h"
 #include "rendering/renderer.h"
 
 using namespace mupsi;
+using namespace Eigen; 
 
 int main()
 {
@@ -39,9 +40,11 @@ int main()
     }
 
     g_rayTraceConfig = cfg.trace;
-    g_gpSeed = cfg.seed;
 
-    GPScene scene(cfg.cell_size, cfg.length_scale, cfg.amplitude, cfg.points_per_cell);
+    SEKernel kernel(3, cfg.cell_size, cfg.length_scale * Vector3f(1.0f, 1.0f, 1.0f)); // TODO: 暂时假定各向同性
+    GPNoiseGenerator gpnoise(kernel, cfg.points_per_cell, cfg.seed);
+
+    GPScene scene(gpnoise);
     // SDFScene scene; 
 
     for (auto& s : cfg.spheres) {
