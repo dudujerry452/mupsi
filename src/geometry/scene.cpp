@@ -132,6 +132,8 @@ bool Scene::intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& i
   for(const auto& primitive: primitives_) {
     primitive->intersect(ray, data);
     if(data.primitive) {
+      info.p = ray.origin() + ray.direction() * ray.farT;
+      info.t = ray.farT;
       primitive->intersectInfo(data, info);
       return true;
     } 

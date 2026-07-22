@@ -5,7 +5,7 @@
 namespace mupsi {
 
   void LambertianBsdf::eval(SurfaceScatterEvent& event) const {
-    event.rad = albedo_ / M_PI;
+    event.rad = albedo_ * event.wi.dot(event.normal) / M_PI;
   }
 
   void LambertianBsdf::sample(SurfaceScatterEvent& event) const {
@@ -31,7 +31,7 @@ namespace mupsi {
 
   void LambertianBsdf::pdf(SurfaceScatterEvent& event) const {
     float cosTheta = std::max(event.wo.dot(event.normal), 0.0f);
-    event.pdf = cosTheta / M_PI;
+    event.pdf = (cosTheta > 0 ? 1.0f : 0.0f) / M_PI;
   }
 
 } 

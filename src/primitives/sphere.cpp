@@ -2,11 +2,13 @@
 
 namespace mupsi {
 
-  void Sphere::intersect(Ray& ray, IntersectionTemporary& data) const {
+  // TODO: 球在后方bug
+  void Sphere::intersect(Ray& ray, IntersectionTemporary& data) const { 
       Vector3f p = center_ - ray.origin();
       ray.farT = p.dot(ray.direction());
       float dis2 = p.squaredNorm() - ray.farT * ray.farT;
       if (dis2 > radius_ * radius_) {
+          data.primitive = nullptr;
           return;
       } else {
         

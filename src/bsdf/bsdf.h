@@ -41,7 +41,7 @@ class LambertianBsdf: public Bsdf {
 
   public: 
 
-    LambertianBsdf() = default;
+    LambertianBsdf(): albedo_(Vector3f(0.8, 0.8, 0.8)) {}; 
     LambertianBsdf(const Vector3f& albedo): albedo_(albedo) {};
     virtual ~LambertianBsdf() = default; 
 

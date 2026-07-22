@@ -178,6 +178,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
   Ray ray = scene.cam().generateRay(pixel.x(), pixel.y());
 
   Vector3f emission = Vector3f::Zero();
+  Vector3f throughput = Vector3f::Ones() ; 
   bool hasHit = false; 
   int bounce_times = 0; 
   do {
@@ -187,17 +188,25 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     if(data.primitive) {
       hasHit = true;
       SurfaceScatterEvent event = makeSurfaceScatterEvent(data, info, ray, &path_sampler);
+
+      bool backside = event.wo.dot(event.normal) < 0;
+      if(backside) {
+        event.normal = -event.normal;
+      }
+
       info.bsdf->sample(event);
       info.bsdf->eval(event);
-      info.bsdf->pdf(event);
-      emission += event.rad / event.pdf / settings_->rr;
+
+      throughput = throughput.cwiseProduct((event.rad) / settings_->rr);
       if (path_sampler.next1D() > settings_->rr) 
         break; 
       ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
       bounce_times ++; 
-    } else hasHit = false; 
+    } else {
+      hasHit = false; 
+    }
   }while(hasHit && bounce_times < settings_->max_bounce); 
 
-  return emission;
+  return throughput;
 }
 }
