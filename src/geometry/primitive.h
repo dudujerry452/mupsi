@@ -3,6 +3,7 @@
 
 #include "ray.h"
 #include "intersection.h"
+#include "bsdf/bsdf.h"
 
 #include <memory>
 

@@ -178,7 +178,8 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
   Ray ray = scene.cam().generateRay(pixel.x(), pixel.y());
 
   Vector3f emission = Vector3f::Zero();
-  bool hasHit = false, bounce_times = 0; 
+  bool hasHit = false; 
+  int bounce_times = 0; 
   do {
     IntersectionTemporary data; 
     IntersectionInfo info;

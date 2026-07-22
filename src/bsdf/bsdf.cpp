@@ -1,5 +1,6 @@
-#include "bsdf.h" 
+#include "bsdf.h"
 #include "math/random.h"
+#include <Eigen/Geometry>
 
 namespace mupsi {
 

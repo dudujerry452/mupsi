@@ -9,29 +9,15 @@ namespace mupsi {
 
 class Sampler {
 
-public: 
+public:
 
     Sampler() = default;
     virtual ~Sampler() = default;
     virtual float next1D() = 0;
-    virtual void next2D(float& x, float& y) = 0; 
-    virtual uint32_t nextI() = 0; 
+    virtual void next2D(float& x, float& y) = 0;
+    virtual uint32_t nextI() = 0;
 
-}; 
-
-class Random; 
-
-class UniformPathSampler : public Sampler {
-    Random rng_; 
-
-public:
-    UniformPathSampler(uint32_t seed): rng_(seed) {}
-    float next1D() override { return rng_.next1D(); }
-    void next2D(float& x, float& y) override { x = rng_.next1D(); y = rng_.next1D(); }
-    uint32_t nextI() override { return rng_.nextI(); }
-}; 
-
-// dirty work below ---
+};
 
 // ——— hash_combine seed generation ———
 inline void hash_combine(uint32_t& seed, uint32_t v) {
@@ -139,6 +125,16 @@ public:
         float a  = 2.0f * float(M_PI) * u2;
         return r * std::cos(a);
     }
+};
+
+class UniformPathSampler : public Sampler {
+    Random rng_;
+
+public:
+    UniformPathSampler(uint32_t seed): rng_(seed) {}
+    float next1D() override { return rng_.next1D(); }
+    void next2D(float& x, float& y) override { x = rng_.next1D(); y = rng_.next1D(); }
+    uint32_t nextI() override { return rng_.nextI(); }
 };
 
 } // namespace mupsi

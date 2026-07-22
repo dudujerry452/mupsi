@@ -3,7 +3,11 @@
 
 #include "geometry/scene.h"
 #include "geometry/ray.h"
+#include "bsdf/bsdf.h"
+#include "geometry/intersection.h"
+#include "math/random.h"
 #include <cstdint>
+#include <memory>
 
 namespace mupsi {
 
@@ -35,7 +39,8 @@ struct PathTracerSettings {
   int max_medium_bounce = 3; 
   float eps = 1e-4; 
   float rr = 0.5; 
-}; 
+};
+
 
 class PathTracer {
 
