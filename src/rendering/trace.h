@@ -29,7 +29,27 @@ uint32_t computeGPSeed(uint32_t base_seed, uint32_t bounce);
 Intersection castRay(const Ray &ray, SDFScene &scene);
 Vector3f traceRay(const Ray &ray, SDFScene &scene, int depth);
 
+struct PathTracerSettings {
+  int spp = 1; 
+  int max_bounce = 3; 
+  int max_medium_bounce = 3; 
+  float eps = 1e-4; 
+  float rr = 0.5; 
+}; 
 
+class PathTracer {
+
+  std::shared_ptr<PathTracerSettings> settings_; 
+
+public: 
+  PathTracer() = default; 
+  PathTracer(std::shared_ptr<PathTracerSettings> settings): settings_(settings) {}
+  virtual ~PathTracer() = default; 
+
+  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler* sampler); 
+
+  Vector3f trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp); 
+}; 
 }
 
 #endif 

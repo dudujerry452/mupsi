@@ -6,9 +6,9 @@
 
 namespace mupsi {
 
-class Renderer{
+class Renderer0{
 public: 
-    Renderer(int width, int height); 
+    Renderer0(int width, int height); 
     void save(const std::string& filename) const { fb_.save(filename); }
 protected: 
     Framebuffer fb_;
@@ -16,7 +16,7 @@ protected:
 
 
 // note: SDFRenderer can render both SDFScene and GPScene, GPScene's eval is overriden.
-class SDFRenderer: public Renderer { 
+class SDFRenderer: public Renderer0 { 
 public:
     SDFRenderer(int width, int height);
 
@@ -24,5 +24,18 @@ public:
 
 };
 
+class Renderer {
+    std::shared_ptr<Framebuffer> framebuffer_;
+
+    public: 
+
+    Renderer() = default; 
+    virtual ~Renderer() = default;
+
+    void prepareRender(Scene& scene);
+    void startRender(Scene& scene); 
+    void afterRender(); 
+
+}; 
 
 } // namespace mupsi

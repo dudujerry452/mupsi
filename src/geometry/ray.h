@@ -9,14 +9,16 @@ namespace mupsi
   class Ray
   {
   public:
-    Ray(const Vector3f &origin, const Vector3f &direction) : origin(origin), direction(direction.normalized()) {}
+    Ray(const Vector3f &origin, const Vector3f &direction) : origin_(origin), direction_(direction.normalized()) {}
     virtual ~Ray() = default;
 
-    const Vector3f getOrigin() const { return origin; }
-    const Vector3f getDirection() const { return direction; }
+    const Vector3f origin() const { return origin_; }
+    const Vector3f direction() const { return direction_; }
+
+    float farT; // editable
 
   private:
-    Vector3f origin, direction; // dir is unit vector
+    Vector3f origin_, direction_; // dir is unit vector
   };
 }
 

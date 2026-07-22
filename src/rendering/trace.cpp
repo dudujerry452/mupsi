@@ -1,5 +1,8 @@
 #include "trace.h"
 #include "math/random.h"
+#include "camera.h"
+#include "geometry/intersection.h"
+#include "bsdf/bsdf.h"
 
 #include <Eigen/Geometry>
 #include <iostream>
@@ -31,14 +34,14 @@ Intersection castRay(const Ray &ray, SDFScene &scene)
   const int &depth = g_rayTraceConfig.depth, &binarynum = g_rayTraceConfig.binarynum;
 
   const SDFObject* obj = nullptr;
-  if (scene.eval(ray.getOrigin(), obj) < eps) // start point is inside the object
+  if (scene.eval(ray.origin(), obj) < eps) // start point is inside the object
     ; // std::cout << "inside !" << std::endl ;                                               // not sure how to deal with it
   else
     for (int i = 0; i < depth; i++)
     {
       t += dt;
-      Vector3f pos = ray.getOrigin() +
-                     ray.getDirection() * t;
+      Vector3f pos = ray.origin() +
+                     ray.direction() * t;
       float v = scene.eval(pos, obj);
 
       if (v < eps)
@@ -46,7 +49,7 @@ Intersection castRay(const Ray &ray, SDFScene &scene)
         float l = -dt, r = 0, mid = -dt / 2;
         for (int j = 0; j < binarynum; j++)
         {
-          float midv = scene.eval(ray.getOrigin() + ray.getDirection() * (t + mid), obj);
+          float midv = scene.eval(ray.origin() + ray.direction() * (t + mid), obj);
           if (midv < eps)
             r = mid;
           else
@@ -63,12 +66,12 @@ Intersection castRay(const Ray &ray, SDFScene &scene)
   if (hit)
   {
     // calculate normal with difference
-    Vector3f hitPos = ray.getOrigin() + ray.getDirection() * t;
+    Vector3f hitPos = ray.origin() + ray.direction() * t;
     normal = scene.getNormal(hitPos);
     material = obj->getMaterial();
   }
 
-  return Intersection{hit, t, ray.getOrigin() + ray.getDirection() * t, normal, material}; // Placeholder normal, replace with actual normal calculation
+  return Intersection{hit, t, ray.origin() + ray.direction() * t, normal, material}; // Placeholder normal, replace with actual normal calculation
 }
 
 Vector3f traceRay(const Ray &ray, SDFScene &scene, int depth) {
@@ -88,7 +91,7 @@ Vector3f traceRay(const Ray &ray, SDFScene &scene, int depth) {
   if (its.hit) {
 
     Vector3f& N = its.normal;
-    const Vector3f& wo = -ray.getDirection();
+    const Vector3f& wo = -ray.direction();
 
     // Prepare conditioning for next bounce (stored in cond_next_, doesn't affect current cond_)
     if (gpScene && g_gpMode == GPCorrelationMode::RenewalPlus) {
@@ -159,4 +162,41 @@ Vector3f traceRay(const Ray &ray, SDFScene &scene, int depth) {
   return Vector3f::Zero();
 }
 
+SurfaceScatterEvent PathTracer::makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler* sampler) {
+  SurfaceScatterEvent event;
+  event.wo = -ray.direction();
+  event.normal = info.Ng;
+  event.sampler = sampler;
+
+  return event;
+}
+
+Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp) {
+  auto pix_seed = make_seed(pixel.x(), pixel.y(), spp, seed);
+  UniformPathSampler path_sampler(pix_seed);
+
+  Ray ray = scene.cam().generateRay(pixel.x(), pixel.y());
+
+  Vector3f emission = Vector3f::Zero();
+  bool hasHit = false, bounce_times = 0; 
+  do {
+    IntersectionTemporary data; 
+    IntersectionInfo info;
+    scene.intersect(ray, data, info);
+    if(data.primitive) {
+      hasHit = true;
+      SurfaceScatterEvent event = makeSurfaceScatterEvent(data, info, ray, &path_sampler);
+      info.bsdf->sample(event);
+      info.bsdf->eval(event);
+      info.bsdf->pdf(event);
+      emission += event.rad / event.pdf / settings_->rr;
+      if (path_sampler.next1D() > settings_->rr) 
+        break; 
+      ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
+      bounce_times ++; 
+    } else hasHit = false; 
+  }while(hasHit && bounce_times < settings_->max_bounce); 
+
+  return emission;
+}
 }

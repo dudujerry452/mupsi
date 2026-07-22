@@ -118,3 +118,26 @@ void GPScene::restoreConditioning(const ConditioningState& cond, uint32_t seed)
   g_cond_seed = seed;
 }
 
+#include "primitive.h"
+
+void Scene::addPrimitive(std::shared_ptr<Primitive> primitive) {
+  primitives_.push_back(primitive);
+}
+
+void Scene::addBsdf(std::shared_ptr<Bsdf> bsdf) {
+  bsdfs_.push_back(bsdf);
+}
+
+bool Scene::intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const {
+  for(const auto& primitive: primitives_) {
+    primitive->intersect(ray, data);
+    if(data.primitive) {
+      primitive->intersectInfo(data, info);
+      return true;
+    } 
+  }
+  return false; 
+}
+
+
+
