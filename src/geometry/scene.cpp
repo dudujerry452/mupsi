@@ -129,16 +129,19 @@ void Scene::addBsdf(std::shared_ptr<Bsdf> bsdf) {
 }
 
 bool Scene::intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const {
+  float mint = std::numeric_limits<float>::max();
+  bool ret = false; 
   for(const auto& primitive: primitives_) {
     primitive->intersect(ray, data);
-    if(data.primitive) {
+    if(data.primitive && ray.farT < mint) {
+      mint = ray.farT;
       info.p = ray.origin() + ray.direction() * ray.farT;
       info.t = ray.farT;
       primitive->intersectInfo(data, info);
-      return true;
+      ret = true; 
     } 
   }
-  return false; 
+  return ret; 
 }
 
 
