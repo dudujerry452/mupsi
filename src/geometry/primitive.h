@@ -29,6 +29,8 @@ public:
   virtual void intersect(Ray& ray, IntersectionTemporary& data) const = 0; 
   virtual void intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const = 0;
 
+  virtual bool sampleDirect(const Vector3f& p, Sampler& sampler, LightSample& sample) const = 0; 
+
   virtual int bsdfNum() const = 0; 
   virtual const Bsdf* getBsdf(int index) const = 0;
 }; 

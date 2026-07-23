@@ -31,6 +31,8 @@ public :
   void intersect(Ray& ray, IntersectionTemporary& data) const override; 
   void intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const override;
 
+  bool sampleDirect(const Vector3f& p, Sampler& sampler, LightSample& sample) const; 
+
   int bsdfNum() const override { return 1; } 
   const Bsdf* getBsdf(int index) const override;
 

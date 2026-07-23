@@ -9,8 +9,6 @@ namespace mupsi {
 class Sampler; 
 
 struct SurfaceScatterEvent{
-
-  public: 
   
   // input 
     Vector3f wo; 
@@ -24,6 +22,12 @@ struct SurfaceScatterEvent{
 
     SurfaceScatterEvent() = default;
 }; 
+
+struct LightSample {
+  Vector3f d; // shade point -> sample point, normalized
+  float dist; 
+  float pdf; 
+};
 
 class Bsdf {
 

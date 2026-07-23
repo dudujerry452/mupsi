@@ -100,7 +100,6 @@ namespace mupsi
       bool intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const;
       const Camera& cam() const { return *camera_; }
 
-
   }; 
 }
 

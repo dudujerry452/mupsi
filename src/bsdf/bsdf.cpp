@@ -1,5 +1,6 @@
 #include "bsdf.h"
 #include "math/random.h"
+#include "math/sample.h"
 #include <Eigen/Geometry>
 
 namespace mupsi {
@@ -17,16 +18,9 @@ namespace mupsi {
     float sinTheta = sqrt(r2);
     Vector3f localWi(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
 
-    // transform localWi to world space
-    Vector3f tangent, bitangent;
-    if (fabs(event.normal.x()) > fabs(event.normal.z())) {
-      tangent = Vector3f(-event.normal.y(), event.normal.x(), 0).normalized();
-    } else {
-      tangent = Vector3f(0, -event.normal.z(), event.normal.y()).normalized();
-    }
-    bitangent = event.normal.cross(tangent);
-    event.wi = (tangent * localWi.x() + bitangent * localWi.y() + event.normal * localWi.z()).normalized();
-    
+    TangentFrame frame(event.normal); 
+    event.wi = frame.toGlobal(localWi);
+
     event.pdf = cosTheta / M_PI;
     event.rad = albedo_; 
 

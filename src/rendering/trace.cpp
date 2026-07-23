@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "geometry/intersection.h"
 #include "bsdf/bsdf.h"
+#include "geometry/primitive.h"
 
 #include <Eigen/Geometry>
 #include <iostream>
@@ -192,7 +193,16 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
       bool backside = event.wo.dot(event.normal) < 0;
       if(backside) {
         event.normal = -event.normal;
-      }
+      } 
+
+      // light sample 
+      
+    
+
+      // bsdf sample 
+      // if(!backside && data.primitive->hasEmission()) {
+      //   emission += throughput.cwiseProduct(data.primitive->getEmissionIntensity()); 
+      // }
 
       info.bsdf->sample(event); // 填充wi, pdf, rad
 
@@ -202,8 +212,13 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
       if (path_sampler.next1D() > survival) 
         break; 
       throughput /= survival;
+
+
+
+
       ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
       bounce_times ++; 
+
     } else {
       hasHit = false; 
     }

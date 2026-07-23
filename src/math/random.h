@@ -15,6 +15,11 @@ public:
     virtual ~Sampler() = default;
     virtual float next1D() = 0;
     virtual void next2D(float& x, float& y) = 0;
+    Vector2f next2D() {
+        float x, y;
+        next2D(x, y);
+        return Vector2f(x, y);
+    }
     virtual uint32_t nextI() = 0;
 
 };
