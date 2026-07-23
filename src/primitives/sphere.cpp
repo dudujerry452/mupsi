@@ -5,23 +5,28 @@ namespace mupsi {
   // TODO: 球在后方bug
   void Sphere::intersect(Ray& ray, IntersectionTemporary& data) const { 
       Vector3f p = center_ - ray.origin();
-      ray.farT = p.dot(ray.direction());
-      float dis2 = p.squaredNorm() - ray.farT * ray.farT;
+      float hit = p.dot(ray.direction()); 
+      hit = p.dot(ray.direction());
+      float dis2 = p.squaredNorm() - hit * hit;
       if (dis2 > radius_ * radius_) {
           data.primitive = nullptr;
           return;
       } else {
         
         float offset = sqrt(radius_ * radius_ - dis2);
-        ray.farT -= offset;
-        if (ray.farT < 0) {
-          ray.farT += 2 * offset;
+        hit -= offset;
+        if (hit < 0) {
+          hit += 2 * offset;
+          if (hit < 0) {
+            data.primitive = nullptr;
+            return;
+          }
           data.as<SphereIntersection>()->backside = true;
         } else {
           data.as<SphereIntersection>()->backside = false;
         }
         data.primitive = this;
-
+        ray.farT = hit;
       }
   }
   void Sphere::intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const{
