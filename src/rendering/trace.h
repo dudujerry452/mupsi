@@ -53,6 +53,13 @@ public:
 
   SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler* sampler); 
 
+  bool handleSurface(SurfaceScatterEvent& event, Vector3f& throughput, Vector3f& emission, 
+    Ray& ray, 
+    IntersectionTemporary& data, 
+    IntersectionInfo& info, 
+    Scene& scene, 
+    Sampler* sampler);
+    
   Vector3f trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp); 
 }; 
 }

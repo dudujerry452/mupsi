@@ -2,6 +2,8 @@
 #define _BSDF_H_
 
 #include <Eigen/Core>
+#include <memory>
+#include "geometry/intersection.h"
 using namespace Eigen;
 
 namespace mupsi {
@@ -14,6 +16,7 @@ struct SurfaceScatterEvent{
     Vector3f wo; 
     Vector3f normal; 
     Sampler* sampler; 
+    const IntersectionInfo* info; 
 
   // output 
     Vector3f wi; 
@@ -29,7 +32,12 @@ struct LightSample {
   float pdf; 
 };
 
+class Texture; 
+
 class Bsdf {
+
+  protected: 
+    static std::shared_ptr<Texture> default_albedo_; 
 
   public: 
 
@@ -45,8 +53,8 @@ class LambertianBsdf: public Bsdf {
 
   public: 
 
-    LambertianBsdf(): albedo_(Vector3f(0.8, 0.8, 0.8)) {}; 
-    LambertianBsdf(const Vector3f& albedo): albedo_(albedo) {};
+    LambertianBsdf(): albedo_(Bsdf::default_albedo_) {}; 
+    LambertianBsdf(std::shared_ptr<Texture> albedo): albedo_(albedo) {};
     virtual ~LambertianBsdf() = default; 
 
     void eval(SurfaceScatterEvent& event) const override; 
@@ -54,7 +62,7 @@ class LambertianBsdf: public Bsdf {
     void pdf(SurfaceScatterEvent& event) const override;  
 
   private:
-    Vector3f albedo_;
+    std::shared_ptr<Texture> albedo_;
 };
 }
 

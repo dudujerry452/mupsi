@@ -98,7 +98,10 @@ namespace mupsi
       void setCamera(std::shared_ptr<Camera> camera) { camera_ = camera; }
 
       bool intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const;
+      bool occluded(const Ray& ray) const;
       const Camera& cam() const { return *camera_; }
+
+      friend class Renderer; 
 
   }; 
 }

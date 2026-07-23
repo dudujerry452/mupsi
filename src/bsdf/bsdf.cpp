@@ -1,12 +1,16 @@
 #include "bsdf.h"
 #include "math/random.h"
 #include "math/sample.h"
+#include "texture/texture.h"
 #include <Eigen/Geometry>
+#include <memory>
 
 namespace mupsi {
 
+  std::shared_ptr<Texture> Bsdf::default_albedo_ = std::make_shared<ConstantTexture>(Vector3f(0.8, 0.8, 0.8));
+
   void LambertianBsdf::eval(SurfaceScatterEvent& event) const {
-    event.rad = albedo_ * event.wi.dot(event.normal) / M_PI;
+    event.rad = (*albedo_)[event.info->uv] * event.wi.dot(event.normal) / M_PI;
   }
 
   void LambertianBsdf::sample(SurfaceScatterEvent& event) const {
@@ -22,7 +26,7 @@ namespace mupsi {
     event.wi = frame.toGlobal(localWi);
 
     event.pdf = cosTheta / M_PI;
-    event.rad = albedo_; 
+    event.rad = (*albedo_)[event.info->uv]; // eval / pdf 
 
   }
 

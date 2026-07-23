@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "trace.h"
+#include "geometry/primitive.h"
 #include <iostream>
 #include <atomic>
 
@@ -45,6 +46,10 @@ namespace mupsi
 
   void Renderer::prepareRender(Scene& scene) { 
     framebuffer_ = std::make_shared<Framebuffer>(scene.cam().width(), scene.cam().height());
+
+    for(auto& primitive: scene.primitives_) {
+      primitive->prepareForRender(); 
+    }
   }
 
   void Renderer::startRender(Scene& scene) { 

@@ -168,8 +168,41 @@ SurfaceScatterEvent PathTracer::makeSurfaceScatterEvent(IntersectionTemporary& d
   event.wo = -ray.direction();
   event.normal = info.Ng;
   event.sampler = sampler;
+  event.info = &info; 
 
   return event;
+}
+
+bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput, Vector3f& emission, 
+    Ray& ray, 
+    IntersectionTemporary& data, 
+    IntersectionInfo& info, 
+    Scene& scene, 
+    Sampler* sampler) {
+
+    bool backside = event.wo.dot(event.normal) < 0;
+      if(backside) {
+        event.normal = -event.normal;
+      } 
+
+    // light sample 
+    emission += throughput * std::max(0.0f, Vector3f(1.0f, 0.0f, 0.0f).dot(event.normal)); 
+
+    // bsdf sample 
+    // if(!backside && data.primitive->hasEmission()) {
+    //   emission += throughput.cwiseProduct(data.primitive->getEmissionIntensity()); 
+    // }
+
+    info.bsdf->sample(event); // 填充wi, pdf, rad
+
+    throughput = throughput.cwiseProduct((event.rad));
+    float survival = throughput.maxCoeff();
+
+    if (sampler->next1D() > survival) 
+      return false; 
+    throughput /= survival;
+
+    return true; 
 }
 
 Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp) {
@@ -190,31 +223,9 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
       hasHit = true;
       SurfaceScatterEvent event = makeSurfaceScatterEvent(data, info, ray, &path_sampler);
 
-      bool backside = event.wo.dot(event.normal) < 0;
-      if(backside) {
-        event.normal = -event.normal;
-      } 
-
-      // light sample 
-      
-    
-
-      // bsdf sample 
-      // if(!backside && data.primitive->hasEmission()) {
-      //   emission += throughput.cwiseProduct(data.primitive->getEmissionIntensity()); 
-      // }
-
-      info.bsdf->sample(event); // 填充wi, pdf, rad
-
-      throughput = throughput.cwiseProduct((event.rad));
-      float survival = throughput.maxCoeff();
-
-      if (path_sampler.next1D() > survival) 
+      if(!handleSurface(event, throughput, emission, ray, data, info, scene, &path_sampler)) {
         break; 
-      throughput /= survival;
-
-
-
+      }
 
       ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
       bounce_times ++; 
@@ -224,6 +235,6 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     }
   }while(hasHit && bounce_times < settings_->max_bounce); 
 
-  return throughput;
+  return emission;
 }
 }

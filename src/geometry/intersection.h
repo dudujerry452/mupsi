@@ -36,6 +36,8 @@ struct IntersectionInfo {
   Vector3f p; 
   float t;
 
+  Vector2f uv; 
+
   const Primitive* primitive;
   const Bsdf* bsdf; 
 

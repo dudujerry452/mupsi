@@ -133,15 +133,24 @@ bool Scene::intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& i
   bool ret = false; 
   for(const auto& primitive: primitives_) {
     primitive->intersect(ray, data);
-    if(data.primitive && ray.farT < mint) {
-      mint = ray.farT;
-      info.p = ray.origin() + ray.direction() * ray.farT;
-      info.t = ray.farT;
+    if(data.primitive && ray.farT() < mint) {
+      mint = ray.farT();
+      info.p = ray.origin() + ray.direction() * ray.farT();
+      info.t = ray.farT();
       primitive->intersectInfo(data, info);
       ret = true; 
     } 
   }
   return ret; 
+}
+
+bool Scene::occluded(const Ray& ray) const {
+  for(const auto& primitive: primitives_) {
+    if(primitive->occluded(ray)) {
+      return true; 
+    }
+  }
+  return false; 
 }
 
 
