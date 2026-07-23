@@ -194,12 +194,14 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
         event.normal = -event.normal;
       }
 
-      info.bsdf->sample(event);
-      info.bsdf->eval(event);
+      info.bsdf->sample(event); // 填充wi, pdf, rad
 
-      throughput = throughput.cwiseProduct((event.rad) / settings_->rr);
-      if (path_sampler.next1D() > settings_->rr) 
+      throughput = throughput.cwiseProduct((event.rad));
+      float survival = throughput.maxCoeff();
+
+      if (path_sampler.next1D() > survival) 
         break; 
+      throughput /= survival;
       ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
       bounce_times ++; 
     } else {

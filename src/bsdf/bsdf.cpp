@@ -26,12 +26,15 @@ namespace mupsi {
     }
     bitangent = event.normal.cross(tangent);
     event.wi = (tangent * localWi.x() + bitangent * localWi.y() + event.normal * localWi.z()).normalized();
+    
+    event.pdf = cosTheta / M_PI;
+    event.rad = albedo_; 
 
   }
 
   void LambertianBsdf::pdf(SurfaceScatterEvent& event) const {
-    float cosTheta = std::max(event.wo.dot(event.normal), 0.0f);
-    event.pdf = (cosTheta > 0 ? 1.0f : 0.0f) / M_PI;
+    float cosTheta = std::max(event.wi.dot(event.normal), 0.0f);
+    event.pdf = cosTheta / M_PI;
   }
 
 } 
