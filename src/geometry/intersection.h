@@ -11,7 +11,7 @@ class Primitive;
 
 struct IntersectionTemporary {
 
-  const Primitive* primitive; 
+  const Primitive* primitive = nullptr; 
   uint8_t data[64];  // 64bytes 
 
   IntersectionTemporary() = default; 
@@ -38,8 +38,8 @@ struct IntersectionInfo {
 
   Vector2f uv; 
 
-  const Primitive* primitive;
-  const Bsdf* bsdf; 
+  const Primitive* primitive = nullptr;
+  const Bsdf* bsdf = nullptr; 
 
   // medium
   uint32_t sceneSeed; 
