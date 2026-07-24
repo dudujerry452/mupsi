@@ -198,7 +198,9 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
     LightSample light_sample;
     if(scene.chooseLight(info.p, *sampler, light_sample)) {
       Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
-      ray.setFarT(light_sample.dist * (1.0f - 1e-4f));  // stop before light surface
+      // important: fix farT because the origin point of ray is p + eps
+      float bias_dist = light_sample.dist - settings_->eps * std::abs(light_sample.d.dot(event.normal));
+      ray.setFarT(bias_dist * 0.99f);  // stop before light surface
       if(!scene.occluded(ray)) {
         emission += throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal));
         
