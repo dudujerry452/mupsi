@@ -1,9 +1,15 @@
 #include <iostream>
+#include <memory>
 #include <Eigen/Dense>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-int main() {
+#include "rendering/renderer.h"
+
+using namespace mupsi;
+
+int main()
+{
     std::cout << "mupsi v0.1 — μ + ψ" << std::endl;
 
     // sanity check
@@ -12,6 +18,17 @@ int main() {
 
     cv::Mat img(64, 64, CV_8UC3, cv::Scalar(128, 0, 0));
     std::cout << "OpenCV ok: " << img.rows << "x" << img.cols << std::endl;
+
+    GPScene scene(3.0, 1.0f, 5.0f, 3, 42);  // cellSize, lengthScale, amplitude, pointsPerCell, seed (matching sparse-gpis single-realization defaults) 
+    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, 0.0}, 200.0)); 
+
+    Camera camera(Vector3f{0.0, 0.0, -220}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
+    // Camera camera(Vector3f{-5, 0.0, 0}, Vector3f{1.0, 0.0, 0.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
+
+    GPRenderer renderer(1024, 1024);
+    renderer.render(scene, camera);
+
+    renderer.save("test.png");
 
     return 0;
 }

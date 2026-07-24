@@ -1,7 +1,10 @@
 build/
 .flake/
 .direnv/
+doc/
 *.ppm
 *.png
 *.exr
 *.jpg
+compile_commands.json
+config.json
