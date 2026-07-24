@@ -2,6 +2,7 @@
 #define _GPNOISE_H_
 
 #include "kernel.h"
+#include "memory"
 
 namespace mupsi {
 
@@ -36,6 +37,33 @@ private:
   uint32_t gpseed;
 
 };
+
+class Sampler; 
+class SparseConvKernel; 
+
+class SparseGPNoiseGenerator {
+
+  std::shared_ptr<SparseConvKernel> kernel_; 
+  int impulseDensity_; 
+  uint32_t seed_; 
+
+  private: 
+  
+  float InternalNoise(const Vector3f& p) const; 
+
+  public: 
+
+  SparseGPNoiseGenerator(std::shared_ptr<SparseConvKernel> kernel, int impulse_density):
+    kernel_(kernel), impulseDensity_(impulse_density), seed_(42){}
+
+  float RawNoise(const Vector3f& p) const {return kernel_->getSigma() * InternalNoise(p) / std::sqrt(Var()); } 
+  float Var() const {return ((impulseDensity_ / std::pow(kernel_->getKernelRadius(), 3)) * std::pow(M_PI, 1.5)); }
+
+  void setSeed(uint32_t seed) { seed_ = seed; }
+  uint32_t getSeed() const { return seed_; }
+  std::shared_ptr<SparseConvKernel> getKernel() const { return kernel_; }
+
+}; 
 
 }
 
