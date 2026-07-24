@@ -33,7 +33,7 @@ class Renderer {
     virtual ~Renderer() = default;
 
     void prepareRender(Scene& scene);
-    void startRender(Scene& scene); 
+    void startRender(Scene& scene, int spp); 
     void afterRender(); 
 
 }; 

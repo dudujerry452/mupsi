@@ -52,13 +52,19 @@ namespace mupsi
     }
   }
 
-  void Renderer::startRender(Scene& scene) { 
+  void Renderer::startRender(Scene& scene, int spp) { 
     int w = scene.cam().width(), h = scene.cam().height();
+    float inv_k = 1.0f / spp;
     for(int j = 0; j < h; j ++) {
       for(int i = 0; i < w; i ++) {
+        Vector3f emmision = Vector3f::Zero(); 
+        for(int k = 0; k < spp; k ++) {
           PathTracer tracer(std::make_shared<PathTracerSettings>());
-          Vector3f emmision = tracer.trace(Vector2i(i, j), scene, 0, 1);
-          framebuffer_->operator()(i, j) = Color({emmision});
+          emmision += tracer.trace(Vector2i(i, j), scene, 0, k);
+          
+        }
+        emmision *= inv_k; 
+        framebuffer_->operator()(i, j) = Color({emmision});
       }
     }
   }

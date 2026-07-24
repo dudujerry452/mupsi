@@ -92,7 +92,7 @@ int main()
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene);
+    renderer.startRender(scene, 10);
     renderer.afterRender();
 
     return 0;
