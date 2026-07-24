@@ -188,14 +188,18 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
     // light sample 
     emission += throughput * std::max(0.0f, Vector3f(1.0f, 0.0f, 0.0f).dot(event.normal)); 
 
-    // bsdf sample 
-    // if(!backside && data.primitive->hasEmission()) {
-    //   emission += throughput.cwiseProduct(data.primitive->getEmissionIntensity()); 
-    // }
+    LightSample light_sample;
+    if(scene.chooseLight(info.p, *sampler, light_sample)) {
+      Ray ray(info.p + event.normal * settings_->eps, light_sample.d); 
+      if(!scene.occluded(ray)) {
+        emission += throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal)); 
+      }
+    }
 
+    // bsdf sample 
     info.bsdf->sample(event); // 填充wi, pdf, rad
 
-    throughput = throughput.cwiseProduct((event.rad));
+    throughput = throughput.cwiseProduct((event.weight));
     float survival = throughput.maxCoeff();
 
     if (sampler->next1D() > survival) 

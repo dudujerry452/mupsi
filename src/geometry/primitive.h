@@ -39,7 +39,10 @@ public:
   virtual void prepareForRender() = 0;
 
   virtual int bsdfNum() const = 0; 
-  virtual const Bsdf* getBsdf(int index) const = 0;
+  virtual const Bsdf* getBsdf(int index) const = 0;  
+  virtual const Texture* getEmission() const = 0; 
+  
+  virtual void setEmission(std::shared_ptr<Texture> emission) = 0;
 
   friend class Renderer; 
   friend class Scene; 

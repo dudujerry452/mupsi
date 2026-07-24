@@ -17,6 +17,13 @@ class Sphere : public Primitive {
   std::shared_ptr<Bsdf> bsdf_;
   std::shared_ptr<Texture> emission_;
 
+private: 
+
+  Vector2f getUV(const Vector3f& p) const {
+    Vector3f localN = (p - center_).normalized();
+    return Vector2f(std::atan2(localN.y(), localN.x()) / (2*M_PI) + 0.5f, std::acos(std::clamp(localN.z(), -1.0f, 1.0f)) / M_PI);
+  }
+
 public : 
 
   Sphere():center_(Vector3f(0, 0, 0)), radius_(1.0f), bsdf_(Primitive::default_bsdf_), emission_(nullptr) {
@@ -43,10 +50,10 @@ public :
 
   int bsdfNum() const override { return 1; } 
   const Bsdf* getBsdf(int index) const override;
-  const Texture* getEmission() const { return emission_.get(); }
+  const Texture* getEmission() const override { return emission_.get(); }
 
   // set 
-  void setEmission(std::shared_ptr<Texture> emission) { emission_ = emission; }
+  void setEmission(std::shared_ptr<Texture> emission) override { emission_ = emission; }
 
 }; 
 }

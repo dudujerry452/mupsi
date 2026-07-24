@@ -4,6 +4,7 @@
 #include "object.h"
 #include "ray.h"
 #include "gp/gpnoise.h"
+#include "bsdf/bsdf.h"
 #include <memory>
 #include <vector>
 
@@ -99,6 +100,9 @@ namespace mupsi
 
       bool intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const;
       bool occluded(const Ray& ray) const;
+
+      bool chooseLight(const Vector3f& p, Sampler& sampler, LightSample& sample) const;
+
       const Camera& cam() const { return *camera_; }
 
       friend class Renderer; 

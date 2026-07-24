@@ -153,5 +153,19 @@ bool Scene::occluded(const Ray& ray) const {
   return false; 
 }
 
+bool Scene::chooseLight(const Vector3f& p, Sampler& sampler, LightSample& sample) const {
+  if(primitives_.empty()) return false; 
+  std::vector<std::shared_ptr<Primitive>> lightPrimitives;
+  for(const auto& primitive: primitives_) {
+    if(primitive->getEmission()) {
+      lightPrimitives.push_back(primitive);
+    }
+  }
+  if(lightPrimitives.empty()) return false;
+  int index = sampler.nextI() % lightPrimitives.size(); 
+  lightPrimitives[index]->sampleDirect(p, sampler, sample);
+  return true;
+}
+
 
 

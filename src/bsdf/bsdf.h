@@ -21,12 +21,13 @@ struct SurfaceScatterEvent{
   // output 
     Vector3f wi; 
     float pdf; 
-    Vector3f rad; // radiance
+    Vector3f weight; // 反射率, albedo
 
     SurfaceScatterEvent() = default;
 }; 
 
 struct LightSample {
+  Vector3f weight; 
   Vector3f d; // shade point -> sample point, normalized
   float dist; 
   float pdf; 

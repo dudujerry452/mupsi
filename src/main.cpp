@@ -5,6 +5,7 @@
 #include <opencv2/imgcodecs.hpp>
 
 #include "primitives/sphere.h"
+#include "texture/texture.h"
 #include "gp/gpnoise.h"
 #include "io/config.h"
 #include "rendering/renderer.h"
@@ -82,6 +83,11 @@ int main()
     Scene scene;
 
     scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, nullptr));
+    auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
+    auto light = std::make_shared<Sphere>(Vector3f(2.0f, 0.0f, -5.0f), 1.0f, nullptr); 
+    light->setEmission(emission_texture); 
+    scene.addPrimitive(light);
+    
     scene.setCamera(std::make_shared<Camera>(Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f), 45.0f, 256, 256));
 
     Renderer renderer;

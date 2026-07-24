@@ -1,6 +1,7 @@
 #include "sphere.h"
 #include "math/sample.h"
 #include "math/random.h"
+#include "texture/texture.h"
 
 namespace mupsi {
 
@@ -36,10 +37,7 @@ bool Sphere::intersect(Ray& ray, IntersectionTemporary& data) const {
     info.p = info.p;
     info.Ng = (info.p - center_).normalized();
 
-    Vector3f &localN = info.Ng;  // TODO: add transform matrix 
-    info.uv = Vector2f(std::atan2(localN.y(), localN.x()) / (2*M_PI) + 0.5f, std::acos(std::clamp(localN.z(), -1.0f, 1.0f)) / M_PI);
-    if (std::isnan(info.uv.x()))
-      info.uv.x() = 0.0f;
+    info.uv = getUV(info.p);
     info.bsdf = getBsdf(0);
   }
 
@@ -81,6 +79,7 @@ bool Sphere::intersect(Ray& ray, IntersectionTemporary& data) const {
 
     sample.d = TangentFrame(dir).toGlobal(sample.d);
     sample.pdf = SampleWrap::uniformSphericalCapPdf(cosTheta);
+    sample.weight = (emission_ ? (*emission_)[getUV(p)] : Vector3f::Zero());
 
     return true; 
   }
