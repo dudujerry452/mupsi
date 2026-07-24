@@ -1,7 +1,7 @@
 #ifndef _RAY_H_
 #define _RAY_H_
 
-#include <eigen3/Eigen/Core>
+#include <Eigen/Core>
 using namespace Eigen;
 
 namespace mupsi

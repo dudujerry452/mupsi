@@ -10,6 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # ——— sources ———
 file(GLOB_RECURSE MUPSI_SOURCES src/*.cpp src/*.hpp src/*.h)
@@ -18,12 +19,13 @@ add_executable(mupsi ${MUPSI_SOURCES})
 
 target_include_directories(mupsi PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${EIGEN3_INCLUDE_DIR}
 )
 
 target_link_libraries(mupsi PRIVATE
     ${OpenCV_LIBS}
     OpenMP::OpenMP_CXX
+    nlohmann_json::nlohmann_json
+    Eigen3::Eigen
 )
 
 # ——— compiler flags ———

@@ -4,29 +4,77 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include "geometry/material.h"
+#include "gp/gpnoise.h"
+#include "io/config.h"
 #include "rendering/renderer.h"
+#include "rendering/trace.h"
 
 using namespace mupsi;
+using namespace Eigen; 
 
 int main()
 {
-    std::cout << "mupsi v0.1 — μ + ψ" << std::endl;
+    std::cout << "mupsi v0.1 — mu + psi" << std::endl;
 
     // sanity check
-    Eigen::Vector3d v(1.0, 2.0, 3.0);
-    std::cout << "Eigen ok: " << v.transpose() << std::endl;
+    #ifdef _OPENMP
+        printf("OpenMP Enabled. Version: %d\n", _OPENMP);
 
-    cv::Mat img(64, 64, CV_8UC3, cv::Scalar(128, 0, 0));
-    std::cout << "OpenCV ok: " << img.rows << "x" << img.cols << std::endl;
+        int thread_count = 0;
+        #pragma omp parallel reduction(+:thread_count)
+        {
+            thread_count = 1;
+        }
 
-    GPScene scene(3.0, 1.0f, 5.0f, 3, 42);  // cellSize, lengthScale, amplitude, pointsPerCell, seed (matching sparse-gpis single-realization defaults) 
-    scene.add(std::make_unique<SDFSphere>(Vector3f{0.0, 0.0, 0.0}, 200.0)); 
+        printf("Active thread: %d\n", thread_count);
+    #else
+        printf("OpenMP is not enabled. \n");
+    #endif
 
-    Camera camera(Vector3f{0.0, 0.0, -220}, Vector3f{0.0, 0.0, 1.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
-    // Camera camera(Vector3f{-5, 0.0, 0}, Vector3f{1.0, 0.0, 0.0}, Vector3f{0.0, 1.0, 0.0}, 60.0f, 1.0f);
+    Config cfg;
+    try {
+        cfg = load_config("config.json");
+        std::cout << "config loaded successfully" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "config: " << e.what() << " — using defaults" << std::endl;
+    }
 
-    GPRenderer renderer(1024, 1024);
-    renderer.render(scene, camera);
+    g_rayTraceConfig = cfg.trace;
+
+    SEKernel kernel(3, cfg.cell_size, cfg.length_scale * Vector3f(1.0f, 1.0f, 1.0f));
+    GPNoiseGenerator gpnoise(kernel, cfg.points_per_cell, cfg.seed);
+
+    // Select scene type: "sdf" / "single_realization" / "ensemble_renewal_plus"
+    std::unique_ptr<SDFScene> scene;
+    if (cfg.gp_mode == "sdf") {
+        scene = std::make_unique<SDFScene>();
+        std::cout << "mode: SDF (no GP)" << std::endl;
+    } else {
+        if (cfg.gp_mode == "single_realization")
+            g_gpMode = GPCorrelationMode::SingleRealization;
+        else if (cfg.gp_mode == "ensemble_renewal_plus")
+            g_gpMode = GPCorrelationMode::RenewalPlus;
+        std::cout << "mode: GP " << cfg.gp_mode << std::endl;
+        scene = std::make_unique<GPScene>(gpnoise);
+    }
+
+    for (auto& s : cfg.spheres) {
+        auto mat = std::make_shared<Material>(s.material.Ka, s.material.has_emission, s.material.emission_value);
+        scene->add(std::make_unique<SDFSphere>(s.center, s.radius, mat));
+    }
+    for (auto& c : cfg.cubes) {
+        auto mat = std::make_shared<Material>(c.material.Ka, c.material.has_emission, c.material.emission_value);
+        scene->add(std::make_unique<SDFCube>(c.center, c.size, mat));
+    }
+
+    for (auto& l : cfg.parallel_lights)
+        scene->addParallelLight({l.direction.normalized(), l.intensity});
+
+    Camera camera(cfg.cam_pos, cfg.cam_dir, cfg.cam_up, cfg.cam_fov, cfg.cam_aspect_ratio);
+
+    SDFRenderer renderer(cfg.width, cfg.height);
+    renderer.render(*scene, camera);
 
     renderer.save("test.png");
 

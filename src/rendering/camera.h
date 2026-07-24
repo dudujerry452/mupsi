@@ -1,8 +1,8 @@
 #ifndef _CAMERA_H_
 #define _CAMERA_H_
 
-#include <eigen3/Eigen/Core>
-#include "../geometry/ray.h"
+#include <Eigen/Core>
+#include "geometry/ray.h"
 
 using namespace Eigen;
 

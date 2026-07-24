@@ -1,9 +1,25 @@
 #include "scene.h"
 #include <memory>
 #include <iostream>
-#include "../gp/gp_eval.h"
+#include <utility>
+#include "gp/gpnoise.h"
+#include "rendering/trace.h"
 
 using namespace mupsi;
+
+namespace mupsi {
+
+// Thread-local conditioning state — one copy per OpenMP thread.
+// Eliminates data races on the shared GPScene instance.
+thread_local uint32_t g_cond_seed;
+
+} // namespace mupsi
+
+namespace {
+    thread_local ConditioningState tls_cond;
+    thread_local ConditioningState tls_cond_next;
+    thread_local uint32_t tls_cond_seed_next;
+}
 
 SDFScene::SDFScene()
 {
@@ -15,127 +31,90 @@ void SDFScene::add(std::unique_ptr<SDFObject> obj)
   bounding = bounding + objects.back()->getBounding();
 }
 
-
-float SDFScene::eval(const Vector3f &pos) const
+float SDFScene::eval(const Vector3f &pos, const SDFObject*& obj) const
 {
   float min_distance = std::numeric_limits<float>::max();
-  for (const auto &obj : objects)
+  for (const auto &obj_ptr : objects)
   {
-    auto obj_ptr = dynamic_cast<const SDFObject *>(obj.get());
-    if (obj_ptr)
-      min_distance = std::min(obj_ptr->eval(pos), min_distance);
+    float eval_value = obj_ptr->eval(pos);
+    if(eval_value < min_distance) {
+      min_distance = eval_value;
+      obj = obj_ptr.get();
+    }
   }
   return min_distance;
 }
 
-Intersection SDFScene::castRay(const Ray &ray) const
-{
-  float t = 0.0;
-  bool hit = false;
-  static const float eps = 0.01, dt = 0.1;
-  static const int depth = 50, binarynum = 3;
+Vector3f SDFScene::getNormal(const Vector3f &pos) const {
 
-  if (eval(ray.getOrigin()) < eps) // start point is inside the object
-    ;                                               // not sure how to deal with it
-  else
-    for (int i = 0; i < depth; i++)
-    {
-      t += dt;
-      Vector3f pos = ray.getOrigin() +
-                     ray.getDirection() * t;
-      float v = eval(pos);
-
-      if (v < eps)
-      {
-        float l = -dt, r = 0, mid = -dt / 2;
-        for (int j = 0; j < binarynum; j++)
-        {
-          float midv = eval(ray.getOrigin() + ray.getDirection() * (t + mid));
-          if (midv < eps)
-            r = mid;
-          else
-            l = mid;
-          mid = (l+r)/2; 
-        }
-        hit = true;
-        break;
-      }
-    }
-
-  Vector3f normal = Vector3f::Zero();
-  if (hit)
-  {
-    // calculate normal with difference
-    Vector3f hitPos = ray.getOrigin() + ray.getDirection() * t;
-    normal =
-        {
-            eval(hitPos + Vector3f{eps, 0, 0}) - eval(hitPos - Vector3f{eps, 0, 0}),
-            eval(hitPos + Vector3f{0, eps, 0}) - eval(hitPos - Vector3f{0, eps, 0}),
-            eval(hitPos + Vector3f{0, 0, eps}) - eval(hitPos - Vector3f{0, 0, eps})};
-    normal.normalize();
-  }
-
-  return Intersection{hit, t, ray.getOrigin() + ray.getDirection() * t, normal}; // Placeholder normal, replace with actual normal calculation
+  float eps = g_rayTraceConfig.eps;  // small value for numerical differentiation
+  Vector3f normal;
+  normal.x() = eval(pos + Vector3f(eps, 0, 0)) - eval(pos - Vector3f(eps, 0, 0));
+  normal.y() = eval(pos + Vector3f(0, eps, 0)) - eval(pos - Vector3f(0, eps, 0));
+  normal.z() = eval(pos + Vector3f(0, 0, eps)) - eval(pos - Vector3f(0, 0, eps));
+  return normal.normalized();
 }
 
-float GPScene::eval(const Vector3f &pos) const
+float GPScene::eval(const Vector3f &pos, const SDFObject*& obj) const
 {
-  float mu = SDFScene::eval(pos);
-
-  SEKernel kernel(lengthScale_); 
-
-  float psi = gp_eval(pos, kernel, pointsPerCell_, cellSize_, seed_) * amplitude_; 
-  // std::cout << "mu = " << mu << ", psi = " << psi << std::endl;
+  float mu = SDFScene::eval(pos, obj);
+  float psi = gpnoise.Noise(pos, g_cond_seed);
+  if (tls_cond.active) {
+    const auto& k = gpnoise.getKernel();
+    psi += k.h(tls_cond.C, pos) * tls_cond.u_tilde
+         + k.h_grad(tls_cond.C, pos).dot(tls_cond.gradient_scale);
+  }
   return mu + psi;
 }
 
-
-Intersection GPScene::castRay(const Ray &ray) const
+void GPScene::prepareConditioning(const Vector3f& C, const Vector3f& targetGrad, uint32_t nextSeed)
 {
-  float t = 0.0;
-  bool hit = false;
-  static const float eps = 0.01, dt = 1.0f;
-  static const int depth = 500, binarynum = 3;
+  const SDFObject* dummy = nullptr;
+  float mu_C = SDFScene::eval(C, dummy);
 
-  if (eval(ray.getOrigin()) < eps) // start point is inside the object
-    ;                                               // not sure how to deal with it
-  else
-    for (int i = 0; i < depth; i++)
-    {
-      t += dt;
-      Vector3f pos = ray.getOrigin() +
-                     ray.getDirection() * t;
-      float v = eval(pos);
+  // Use Noise (not RawNoise) — same normalisation as GPScene::eval
+  float psi_C = gpnoise.Noise(C, nextSeed);
+  tls_cond_next.u_tilde = -mu_C - psi_C;
 
-      if (v < eps)
-      {
-        float l = -dt, r = 0, mid = -dt / 2;
-        for (int j = 0; j < binarynum; j++)
-        {
-          float midv = eval(ray.getOrigin() + ray.getDirection() * (t + mid));
-          if (midv < eps)
-            r = mid;
-          else
-            l = mid;
-          mid = (l+r)/2; 
-        }
-        hit = true;
-        break;
-      }
-    }
+  // numerical gradient of psi (Noise) at C
+  float eps = g_rayTraceConfig.eps;
+  Vector3f grad_psi_C;
+  grad_psi_C.x() = gpnoise.Noise(C + Vector3f(eps, 0, 0), nextSeed)
+                 - gpnoise.Noise(C - Vector3f(eps, 0, 0), nextSeed);
+  grad_psi_C.y() = gpnoise.Noise(C + Vector3f(0, eps, 0), nextSeed)
+                 - gpnoise.Noise(C - Vector3f(0, eps, 0), nextSeed);
+  grad_psi_C.z() = gpnoise.Noise(C + Vector3f(0, 0, eps), nextSeed)
+                 - gpnoise.Noise(C - Vector3f(0, 0, eps), nextSeed);
+  grad_psi_C /= (2.0f * eps);
 
-  Vector3f normal = Vector3f::Zero();
-  if (hit)
-  {
-    // calculate normal with difference
-    Vector3f hitPos = ray.getOrigin() + ray.getDirection() * t;
-    normal =
-        {
-            eval(hitPos + Vector3f{eps, 0, 0}) - eval(hitPos - Vector3f{eps, 0, 0}),
-            eval(hitPos + Vector3f{0, eps, 0}) - eval(hitPos - Vector3f{0, eps, 0}),
-            eval(hitPos + Vector3f{0, 0, eps}) - eval(hitPos - Vector3f{0, 0, eps})};
-    normal.normalize();
-  }
+  // ∇mu(C) using base SDF (non-virtual dispatch against SDFScene)
+  Vector3f grad_mu_C;
+  grad_mu_C.x() = SDFScene::eval(C + Vector3f(eps, 0, 0), dummy)
+                - SDFScene::eval(C - Vector3f(eps, 0, 0), dummy);
+  grad_mu_C.y() = SDFScene::eval(C + Vector3f(0, eps, 0), dummy)
+                - SDFScene::eval(C - Vector3f(0, eps, 0), dummy);
+  grad_mu_C.z() = SDFScene::eval(C + Vector3f(0, 0, eps), dummy)
+                - SDFScene::eval(C - Vector3f(0, 0, eps), dummy);
 
-  return Intersection{hit, t, ray.getOrigin() + ray.getDirection() * t, normal}; // Placeholder normal, replace with actual normal calculation
+  Vector3f delta = targetGrad - grad_mu_C - grad_psi_C;
+  tls_cond_next.gradient_scale = gpnoise.getKernel().oneOverSecondDerivative() * delta;
+
+  tls_cond_next.C = C;
+  tls_cond_next.active = true;
+  tls_cond_seed_next = nextSeed;
 }
+
+std::pair<ConditioningState, uint32_t> GPScene::activateNextConditioning()
+{
+  auto old = std::make_pair(tls_cond, g_cond_seed);
+  tls_cond = tls_cond_next;
+  g_cond_seed = tls_cond_seed_next;
+  return old;
+}
+
+void GPScene::restoreConditioning(const ConditioningState& cond, uint32_t seed)
+{
+  tls_cond = cond;
+  g_cond_seed = seed;
+}
+

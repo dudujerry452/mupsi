@@ -2,7 +2,7 @@
 
 #include "framebuffer.h"
 #include "camera.h"
-#include "../geometry/scene.h"
+#include "geometry/scene.h"
 
 namespace mupsi {
 
@@ -14,19 +14,15 @@ protected:
     Framebuffer fb_;
 }; 
 
-class SDFRenderer: public Renderer {
+
+// note: SDFRenderer can render both SDFScene and GPScene, GPScene's eval is overriden.
+class SDFRenderer: public Renderer { 
 public:
     SDFRenderer(int width, int height);
 
-    void render(const SDFScene& scene, const Camera& camera);
+    void render(SDFScene& scene, const Camera& camera);
 
 };
 
-class GPRenderer: public Renderer {
-public:
-    GPRenderer(int width, int height);
-
-    void render(const GPScene& scene, const Camera& camera);
-};
 
 } // namespace mupsi
