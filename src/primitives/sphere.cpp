@@ -79,7 +79,7 @@ bool Sphere::intersect(Ray& ray, IntersectionTemporary& data) const {
 
     sample.d = TangentFrame(dir).toGlobal(sample.d);
     sample.pdf = SampleWrap::uniformSphericalCapPdf(cosTheta);
-    sample.weight = (emission_ ? (*emission_)[getUV(p)] : Vector3f::Zero());
+    sample.weight = (emission_ ? (*emission_)[getUV(p)] : Vector3f::Zero()) / (sample.pdf < 1e-6f ? 1e-6f : sample.pdf);
 
     return true; 
   }

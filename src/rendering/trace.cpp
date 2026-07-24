@@ -186,13 +186,16 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
       } 
 
     // light sample 
-    emission += throughput * std::max(0.0f, Vector3f(1.0f, 0.0f, 0.0f).dot(event.normal)); 
+    // emission += throughput.cwiseProduct(Vector3f(1.0f, 1.0f, 0.0f)) * std::max(0.0f, Vector3f(1.0f, 0.0f, 0.0f).dot(event.normal)); 
 
     LightSample light_sample;
     if(scene.chooseLight(info.p, *sampler, light_sample)) {
       Ray ray(info.p + event.normal * settings_->eps, light_sample.d); 
       if(!scene.occluded(ray)) {
+        std::cout << "light sample: " << light_sample.weight.transpose() << std::endl;
+        std::cout << "before" << emission.transpose() << std::endl;
         emission += throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal)); 
+        std::cout << "after" << emission.transpose() << std::endl;
       }
     }
 

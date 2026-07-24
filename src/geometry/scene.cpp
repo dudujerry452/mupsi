@@ -163,8 +163,7 @@ bool Scene::chooseLight(const Vector3f& p, Sampler& sampler, LightSample& sample
   }
   if(lightPrimitives.empty()) return false;
   int index = sampler.nextI() % lightPrimitives.size(); 
-  lightPrimitives[index]->sampleDirect(p, sampler, sample);
-  return true;
+  return lightPrimitives[index]->sampleDirect(p, sampler, sample);
 }
 
 
