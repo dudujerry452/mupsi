@@ -1,14 +1,15 @@
 #include "renderer.h"
 #include "trace.h"
+#include "geometry/primitive.h"
 #include <iostream>
 #include <atomic>
 
 namespace mupsi
 {
 
-  Renderer::Renderer(int width, int height): fb_(width, height) {}
+  Renderer0::Renderer0(int width, int height): fb_(width, height) {}
 
-  SDFRenderer::SDFRenderer(int width, int height): Renderer(width, height) {}
+  SDFRenderer::SDFRenderer(int width, int height): Renderer0(width, height) {}
 
   void SDFRenderer::render(SDFScene &scene, const Camera &camera)
   {
@@ -21,10 +22,7 @@ namespace mupsi
       for (int i = 0; i < fb_.width(); i++)
       {
 
-        float x = (i + 0.5f) / fb_.width();
-        float y = (j + 0.5f) / fb_.height();
-
-        Ray ray = camera.generateRay(x, y);
+        Ray ray = camera.generateRay(i, j);
 
         // set thread-local pixel context for per-bounce GP seed generation
         g_pixel_x = i;
@@ -46,5 +44,33 @@ namespace mupsi
     std::cerr << "\r100%" << std::endl;
   }
 
+  void Renderer::prepareRender(Scene& scene) { 
+    framebuffer_ = std::make_shared<Framebuffer>(scene.cam().width(), scene.cam().height());
+
+    for(auto& primitive: scene.primitives_) {
+      primitive->prepareForRender(); 
+    }
+  }
+
+  void Renderer::startRender(Scene& scene, int spp) { 
+    int w = scene.cam().width(), h = scene.cam().height();
+    float inv_k = 1.0f / spp;
+    for(int j = 0; j < h; j ++) {
+      for(int i = 0; i < w; i ++) {
+        Vector3f emmision = Vector3f::Zero(); 
+        for(int k = 0; k < spp; k ++) {
+          PathTracer tracer(std::make_shared<PathTracerSettings>());
+          emmision += tracer.trace(Vector2i(i, j), scene, 0, k);
+          
+        }
+        emmision *= inv_k; 
+        framebuffer_->operator()(i, j) = Color({emmision});
+      }
+    }
+  }
+
+  void Renderer::afterRender() { 
+    framebuffer_->save("test.png");
+  }
 
 } // namespace mupsi

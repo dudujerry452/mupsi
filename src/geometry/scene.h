@@ -4,6 +4,7 @@
 #include "object.h"
 #include "ray.h"
 #include "gp/gpnoise.h"
+#include "bsdf/bsdf.h"
 #include <memory>
 #include <vector>
 
@@ -69,6 +70,44 @@ namespace mupsi
     GPNoiseGenerator gpnoise;
 
   };
+
+
+  // new: 
+
+  class Primitive;
+  class Bsdf; 
+  class Camera; 
+
+  class IntersectionTemporary;
+  class IntersectionInfo;
+
+  class Scene
+  {
+
+      std::vector<std::shared_ptr<Primitive>> primitives_;
+      std::vector<std::shared_ptr<Bsdf>> bsdfs_; // owner 
+
+      std::shared_ptr<Camera> camera_;
+
+      public: 
+
+      Scene() = default; 
+      virtual ~Scene() = default;
+
+      void addPrimitive(std::shared_ptr<Primitive> primitive);
+      void addBsdf(std::shared_ptr<Bsdf> bsdf);
+      void setCamera(std::shared_ptr<Camera> camera) { camera_ = camera; }
+
+      bool intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const;
+      bool occluded(const Ray& ray) const;
+
+      bool chooseLight(const Vector3f& p, Sampler& sampler, LightSample& sample) const;
+
+      const Camera& cam() const { return *camera_; }
+
+      friend class Renderer; 
+
+  }; 
 }
 
 #endif
