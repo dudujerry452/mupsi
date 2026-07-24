@@ -4,6 +4,7 @@
 #include "geometry/intersection.h"
 #include "bsdf/bsdf.h"
 #include "geometry/primitive.h"
+#include "texture/texture.h"
 
 #include <Eigen/Geometry>
 #include <iostream>
@@ -185,17 +186,26 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
         event.normal = -event.normal;
       } 
 
+    // 自发光
+
+    if(info.primitive->getEmission()) {
+      emission += throughput.cwiseProduct((*info.primitive->getEmission())[info.uv]);
+    }
+
     // light sample 
     // emission += throughput.cwiseProduct(Vector3f(1.0f, 1.0f, 0.0f)) * std::max(0.0f, Vector3f(1.0f, 0.0f, 0.0f).dot(event.normal)); 
 
     LightSample light_sample;
     if(scene.chooseLight(info.p, *sampler, light_sample)) {
-      Ray ray(info.p + event.normal * settings_->eps, light_sample.d); 
+      Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
+      ray.setFarT(light_sample.dist * (1.0f - 1e-4f));  // stop before light surface
       if(!scene.occluded(ray)) {
-        std::cout << "light sample: " << light_sample.weight.transpose() << std::endl;
-        std::cout << "before" << emission.transpose() << std::endl;
-        emission += throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal)); 
-        std::cout << "after" << emission.transpose() << std::endl;
+        emission += throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal));
+        
+        // std::cout << "d = " << light_sample.d.transpose() << std::endl; 
+        // std::cout << "normal = " << event.normal.transpose() << std::endl;
+        // std::cout << "dot = " << light_sample.d.dot(event.normal) << std::endl;
+        // std::cout << "light sample: " << emission.transpose() << std::endl;
       }
     }
 
@@ -228,6 +238,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     scene.intersect(ray, data, info);
     if(data.primitive) {
       hasHit = true;
+
       SurfaceScatterEvent event = makeSurfaceScatterEvent(data, info, ray, &path_sampler);
 
       if(!handleSurface(event, throughput, emission, ray, data, info, scene, &path_sampler)) {

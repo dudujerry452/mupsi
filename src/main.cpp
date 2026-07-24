@@ -84,7 +84,7 @@ int main()
 
     scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, nullptr));
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
-    auto light = std::make_shared<Sphere>(Vector3f(2.0f, 0.0f, -5.0f), 1.0f, nullptr); 
+    auto light = std::make_shared<Sphere>(Vector3f(2.0f, 0.0f, -3.0f), 1.0f, nullptr); 
     light->setEmission(emission_texture); 
     scene.addPrimitive(light);
     
