@@ -19,6 +19,7 @@ namespace mupsi {
   class Bsdf;
 
   struct MediumSample {
+    bool exited; 
     float t;
     Vector3f p;
     Vector3f normal;
@@ -38,18 +39,13 @@ namespace mupsi {
 
     public:
 
-    virtual bool sampleDistance(Ray& ray, MediumSample& sample, Sampler& sampler) const = 0;
-    virtual Vector3f transmittance(const Ray& ray, Sampler& sampler) const = 0;
-    virtual Vector3f sampleGradient(const Vector3f& p, Sampler& sampler) const = 0; 
+    virtual bool sampleDistance(Ray& ray, MediumSample& sample, Sampler& medium_sampler) const = 0;
+    virtual Vector3f transmittance(const Ray& ray, Sampler& medium_sampler) const = 0;
+    virtual Vector3f sampleGradient(const Vector3f& p, Sampler& medium_sampler) const = 0; 
 
-    void makeSurfaceEventFromMedium(const MediumSample& sample, Ray& ray, Sampler& sampler, SurfaceScatterEvent& event) const {
-      event.wo = ray.direction(); 
-      event.normal = sample.normal; 
-      event.sampler = &sampler;
-
-     
-
-    }
+    // sampler must be constantsampler
+    SurfaceScatterEvent makeSurfaceEventFromMedium(const MediumSample& sample, 
+        IntersectionInfo& info, Ray& ray, Sampler& sampler, Sampler& medium_sampler) const; 
 
     virtual std::shared_ptr<Bsdf> getBsdf() const = 0;
   };

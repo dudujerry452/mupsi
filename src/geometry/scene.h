@@ -77,6 +77,7 @@ namespace mupsi
   class Primitive;
   class Bsdf; 
   class Camera; 
+  class Medium;
 
   class IntersectionTemporary;
   class IntersectionInfo;
@@ -89,6 +90,8 @@ namespace mupsi
 
       std::shared_ptr<Camera> camera_;
 
+      std::shared_ptr<Medium> medium_;
+
       public: 
 
       Scene() = default; 
@@ -100,8 +103,10 @@ namespace mupsi
 
       bool intersect(Ray& ray, IntersectionTemporary& data, IntersectionInfo& info) const;
       bool occluded(const Ray& ray) const;
-
       bool chooseLight(const Vector3f& p, Sampler& sampler, LightSample& sample) const;
+
+      void setMedium(std::shared_ptr<Medium> medium) { medium_ = medium; }
+      std::shared_ptr<Medium> getMedium() const { return medium_; }
 
       const Camera& cam() const { return *camera_; }
 

@@ -43,7 +43,6 @@ struct IntersectionInfo {
 
   // medium
   uint32_t sceneSeed; 
-  float marchingT;
 
   IntersectionInfo() = default; 
 };

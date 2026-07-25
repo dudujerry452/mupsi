@@ -88,8 +88,34 @@ namespace mupsi {
       t += dt;
 
     }
+    sample.exited = true;
     return false; 
-  
+  }
+
+  Vector3f GPMedium::transmittance(const Ray& ray, Sampler& sampler) const {
+    float nt = ray.nearT(), ft = ray.farT();
+    ft = std::min(ft, 2000.0f); 
+    int min_depth = 100; // 固化到配置 
+    float max_dt = 0.5; 
+    float dt = std::min(max_dt, (ft - nt) / min_depth);
+    uint32_t seed = sampler.nextI();
+
+    float t = nt;
+    float f_c; 
+    float f_prev = eval(ray.origin(), seed);
+    while (t < ft) {
+      Vector3f p = ray.origin() + ray.direction() * t;
+      f_c = eval(p, seed); 
+
+      // TODO: hard-coded value
+      if(sign(f_c) != sign(f_prev) && std::fabs(f_prev - f_c) > 1e-6) {
+        return Vector3f::Zero(); // 全不透明
+      }
+
+      t += dt; 
+
+    }
+    return Vector3f::Ones(); // 能穿过
   }
   
 

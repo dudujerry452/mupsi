@@ -51,14 +51,21 @@ public:
   PathTracer(std::shared_ptr<PathTracerSettings> settings): settings_(settings) {}
   virtual ~PathTracer() = default; 
 
-  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler* sampler); 
+  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 
 
   bool handleSurface(SurfaceScatterEvent& event, Vector3f& throughput, Vector3f& emission, 
     Ray& ray, 
-    IntersectionTemporary& data, 
-    IntersectionInfo& info, 
     Scene& scene, 
-    Sampler* sampler);
+    Sampler& sampler);
+
+  bool handleVolume(SurfaceScatterEvent& event, 
+    Medium& medium,
+    Vector3f& throughput, Vector3f& emission, 
+    Ray& ray, 
+    Scene& scene, 
+    Sampler& sampler, 
+    Sampler& medium_sampler
+  );
     
   Vector3f trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp); 
 }; 

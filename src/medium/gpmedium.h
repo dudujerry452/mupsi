@@ -23,7 +23,7 @@ class GPMedium : public Medium {
 
   float eval(const Vector3f& p, uint32_t seed) const; 
   float evalMu(const Vector3f& p) const {return mean_->eval(p); }
-  float evalPsi(const Vector3f& p, uint32_t seed) const {return noiseGenerator_->RawNoise(p); }
+  float evalPsi(const Vector3f& p, uint32_t seed) const { noiseGenerator_->setSeed(seed);  return noiseGenerator_->RawNoise(p); }
   Vector3f muGradient(const Vector3f& p) const {return mean_->gradient(p); }
   Vector3f psiGradient(const Vector3f& p, uint32_t seed) const { noiseGenerator_->setSeed(seed); return noiseGenerator_->Gradient(p); }
 
@@ -32,9 +32,9 @@ class GPMedium : public Medium {
   GPMedium(std::shared_ptr<MeanFunction> mean_func, std::shared_ptr<SparseGPNoiseGenerator> noiseGenerator, std::shared_ptr<Bsdf> bsdf) : mean_(mean_func), noiseGenerator_(noiseGenerator), bsdf_(bsdf) {}
 
   // smapler: 
-  bool sampleDistance(Ray& ray, MediumSample& sample, Sampler& sampler) const override;
-  Vector3f transmittance(const Ray& ray, Sampler& sampler) const override { return Vector3f::Zero(); }
-  Vector3f sampleGradient(const Vector3f& p, Sampler& sampler) const override; 
+  bool sampleDistance(Ray& ray, MediumSample& sample, Sampler& medium_sampler) const override;
+  Vector3f transmittance(const Ray& ray, Sampler& medium_sampler) const override; 
+  Vector3f sampleGradient(const Vector3f& p, Sampler& medium_sampler) const override; 
 
   std::shared_ptr<Bsdf> getBsdf() const {
     return default_bsdf_; 
