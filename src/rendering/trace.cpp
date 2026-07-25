@@ -1,4 +1,5 @@
 #include "trace.h"
+#include "math/sampler.h"
 #include "math/random.h"
 #include "camera.h"
 #include "geometry/intersection.h"

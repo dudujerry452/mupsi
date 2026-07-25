@@ -5,7 +5,7 @@
 #include "geometry/ray.h"
 #include "bsdf/bsdf.h"
 #include "geometry/intersection.h"
-#include "math/random.h"
+#include "math/sampler.h"
 #include <cstdint>
 #include <memory>
 

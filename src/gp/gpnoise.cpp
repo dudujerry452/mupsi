@@ -1,5 +1,5 @@
 #include "gpnoise.h"
-#include "math/random.h"
+#include "math/sampler.h"
 #include "math/sample.h"
 
 namespace mupsi {

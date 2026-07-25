@@ -1,5 +1,5 @@
 #include "material.h"
-#include "math/random.h"
+#include "math/sampler.h"
 
 #include <Eigen/Geometry>
 #include <iostream>
