@@ -10,6 +10,7 @@
 #include "io/config.h"
 #include "rendering/renderer.h"
 #include "rendering/trace.h"
+#include "medium/gpmedium.h"
 
 using namespace mupsi;
 using namespace Eigen; 
@@ -83,6 +84,17 @@ int main()
     Scene scene;
 
     scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, nullptr));
+
+    std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
+        std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f),
+        std::make_shared<SparseGPNoiseGenerator>(
+            std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
+            3
+        )
+    );
+
+    scene.setMedium(gpmedium);
+
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
     auto light = std::make_shared<Sphere>(Vector3f(2.0f, 0.0f, -3.0f), 1.0f, nullptr); 
     light->setEmission(emission_texture); 
