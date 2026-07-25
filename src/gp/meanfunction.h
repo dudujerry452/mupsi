@@ -11,6 +11,7 @@ namespace mupsi {
 
     virtual ~MeanFunction() = default;
     virtual float eval(const Vector3f& p) const = 0; 
+    virtual Vector3f gradient(const Vector3f& p) const = 0;
   }; 
 
   class SphereMeanFunction : public MeanFunction {
@@ -21,6 +22,7 @@ namespace mupsi {
 
     SphereMeanFunction(const Vector3f& center, float radius) : center_(center), radius_(radius) {}
     float eval(const Vector3f& p) const override; 
+    Vector3f gradient(const Vector3f& p) const override;
   };
 
 

@@ -9,7 +9,7 @@ namespace mupsi
   class Ray
   {
   public:
-    Ray(const Vector3f &origin, const Vector3f &direction) : origin_(origin), direction_(direction.normalized()), nearT_(0.0001f), farT_(std::numeric_limits<float>::max()) {}
+    Ray(const Vector3f &origin, const Vector3f &direction) : origin_(origin), direction_(direction.normalized()), nearT_(0.0f), farT_(std::numeric_limits<float>::max()) {}
     virtual ~Ray() = default;
 
     const Vector3f origin() const { return origin_; }

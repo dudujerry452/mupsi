@@ -63,4 +63,25 @@ float SparseGPNoiseGenerator::InternalNoise(const Vector3f& p) const
   return sum;
 }
 
+Vector3f SparseGPNoiseGenerator::Gradient(const Vector3f& p) const
+{
+  // reference: 
+  /*
+      uint32_t seed = sampler.nextI();
+    float eps = gpeps;  // TODO: hard-coded value
+    Vector3f normal;
+    normal.x() = eval(p + Vector3f(eps, 0, 0), seed) - eval(p - Vector3f(eps, 0, 0), seed);
+    normal.y() = eval(p + Vector3f(0, eps, 0), seed) - eval(p - Vector3f(0, eps, 0), seed);
+    normal.z() = eval(p + Vector3f(0, 0, eps), seed) - eval(p - Vector3f(0, 0, eps), seed);
+    return normal.normalized();
+
+  */
+
+  Vector3f grad; 
+  grad.x() = RawNoise(p + Vector3f(gpeps, 0, 0)) - RawNoise(p - Vector3f(gpeps, 0, 0));
+  grad.y() = RawNoise(p + Vector3f(0, gpeps, 0)) - RawNoise(p - Vector3f(0, gpeps, 0));
+  grad.z() = RawNoise(p + Vector3f(0, 0, gpeps)) - RawNoise(p - Vector3f(0, 0, gpeps));
+  return grad.normalized();
+}
+
 } // namespace mupsi

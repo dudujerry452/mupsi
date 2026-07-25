@@ -2,6 +2,8 @@
 #define _MEDIUM_H_
 
 #include <Eigen/Core>
+#include "bsdf/bsdf.h"
+#include "geometry/ray.h"
 
 using namespace Eigen;
 
@@ -11,7 +13,7 @@ namespace mupsi {
       bool active = false;
       Vector3f C = Vector3f::Zero();
       float u_tilde = 0.0f;
-      Vector3f gradient_scale = Vector3f::Zero();
+      Vector3f g_tilde = Vector3f::Zero();
   };
 
   class Bsdf;
@@ -21,7 +23,7 @@ namespace mupsi {
     Vector3f p;
     Vector3f normal;
 
-    const GPConditioningState& conditioning;
+    GPConditioningState conditioning;
     const Bsdf* bsdf;
   };
 
@@ -30,11 +32,26 @@ namespace mupsi {
 
   class Medium {
 
+    protected: 
+
+    static std::shared_ptr<Bsdf> default_bsdf_;
+
     public:
 
-    virtual void sampleDistance(Ray& ray, MediumSample& sample, Sampler& sampler) const = 0;
+    virtual bool sampleDistance(Ray& ray, MediumSample& sample, Sampler& sampler) const = 0;
     virtual Vector3f transmittance(const Ray& ray, Sampler& sampler) const = 0;
+    virtual Vector3f sampleGradient(const Vector3f& p, Sampler& sampler) const = 0; 
 
+    void makeSurfaceEventFromMedium(const MediumSample& sample, Ray& ray, Sampler& sampler, SurfaceScatterEvent& event) const {
+      event.wo = ray.direction(); 
+      event.normal = sample.normal; 
+      event.sampler = &sampler;
+
+     
+
+    }
+
+    virtual std::shared_ptr<Bsdf> getBsdf() const = 0;
   };
 
 

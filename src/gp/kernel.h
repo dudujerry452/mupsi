@@ -27,6 +27,7 @@ public:
 
   // for condtioning 
   virtual Vector3f h_grad(const Vector3f& C, const Vector3f& p) const = 0;
+  // g = (1/h''(0)) · delta, for 1/h''(0)
   virtual float oneOverSecondDerivative() const = 0;
   virtual float var(float impulseDensity) const = 0;
 

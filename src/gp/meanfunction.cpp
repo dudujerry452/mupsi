@@ -11,6 +11,10 @@ namespace mupsi
   {
     return (p - center_).norm() - radius_;
   }
+  Vector3f SphereMeanFunction::gradient(const Vector3f& p) const {
+    Vector3f diff = p - center_;
+    return diff.normalized();
+  }
 
   
 } // namespace mupsi 
