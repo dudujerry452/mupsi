@@ -86,7 +86,7 @@ namespace mupsi {
         sample.conditioning->g_tilde = 
           noiseGenerator_->getKernel()->oneOverSecondDerivative() * 
                 (
-                  sampleGradient(sample.p, medium_sampler) - 
+                  sample.normal - 
                   muGradient(sample.p) - psiGradient(sample.p, seed)
                 ); 
               
@@ -101,13 +101,13 @@ namespace mupsi {
     return false; 
   }
 
-  Vector3f GPMedium::transmittance(const Ray& ray, MediumSample& sample, Sampler& sampler) const {
+  Vector3f GPMedium::transmittance(const Ray& ray, MediumSample& sample, Sampler& medium_sampler) const {
     float nt = ray.nearT(), ft = ray.farT();
     ft = std::min(ft, 2000.0f); 
     int min_depth = 100; // 固化到配置 
     float max_dt = 0.5; 
     float dt = std::min(max_dt, (ft - nt) / min_depth);
-    uint32_t seed = sampler.nextI();
+    uint32_t seed = medium_sampler.nextI();
 
     float t = nt;
     float f_c; 
