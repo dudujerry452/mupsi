@@ -46,6 +46,8 @@ class GPMedium : public Medium {
   std::shared_ptr<Bsdf> getBsdf() const {
     return default_bsdf_; 
   }
+
+  void sampleCondition(MediumSample& sample, Sampler& medium_sampler) const;
 };
 
 }

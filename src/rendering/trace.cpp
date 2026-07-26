@@ -273,12 +273,14 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
   MediumSample sample; // put it outside because it might has a context
   sample.conditioning = &conditioning; 
 
+  Medium* medium = scene.getMedium().get();
+  GPMedium* gpmedium = dynamic_cast<GPMedium*>(medium);
+  
   do {
     hasHit = false; 
     bool exited = true;  
     // begin medium tracing
-    if(scene.getMedium()) {
-      Medium* medium = scene.getMedium().get();
+    if(medium) {
       ConstantSampler medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : pix_seed); // TODO: assume all the medium use constant sampler like GP Medium
       medium->sampleDistance(ray, sample, medium_sampler); // TODO: assume all the medium use constant sampler like GP Medium
       if(!sample.exited) {
@@ -288,6 +290,10 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
 
         if(!handleVolume(event, sample, *medium, throughput, emission, ray, scene, path_sampler, medium_sampler)) {
           break; 
+        }
+
+        if(gpmedium) {
+          gpmedium->sampleCondition(sample, medium_sampler);
         }
 
         ray = Ray(info.p + info.Ng * settings_->eps, event.wi);

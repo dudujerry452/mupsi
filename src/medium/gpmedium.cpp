@@ -34,7 +34,7 @@ namespace mupsi {
     float nt = ray.nearT(), ft = ray.farT();
     ft = std::min(ft, 2000.0f); 
     int min_depth = 100; // 固化到配置 
-    float max_dt = 0.05; 
+    float max_dt = 0.5; 
     float dt = std::min(max_dt, (ft - nt) / min_depth);
     uint32_t seed = medium_sampler.nextI();
 
@@ -75,32 +75,9 @@ namespace mupsi {
         */
 
         // std::cout << "medium hit at " << sample.t << std::endl; 
-
-       sample.conditioning->active = false;
-       if (g_gpSettings.gpMode == GPSettings::GPCorrelationMode::RenewalPlus) {
-
-        sample.conditioning->active = true;
-        sample.conditioning->C = sample.p; 
-        /*
-          $$\boxed{\tilde{u} = -\frac{\mu(\mathbf{C})}{A} -
-          \psi_{\text{raw}}(\mathbf{C})}$$
-        */
-        sample.conditioning->u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma() 
-                - evalPsi(sample.p, seed);
-        /*
-          g = -\frac{L^2}{2} \cdot (\text{targetGrad} - \nabla\mu(C) -  
-          \nabla\psi(C))
-        */
-        sample.conditioning->g_tilde = 
-          noiseGenerator_->getKernel()->oneOverSecondDerivative() * 
-                (
-                  sample.normal - 
-                  muGradient(sample.p) - psiGradient(sample.p, seed)
-                ); 
-        }
-              
         return true; 
       }
+
       t += dt;
 
     }
@@ -144,6 +121,36 @@ namespace mupsi {
     normal.y() = eval(p + Vector3f(0, eps, 0), seed) - eval(p - Vector3f(0, eps, 0), seed);
     normal.z() = eval(p + Vector3f(0, 0, eps), seed) - eval(p - Vector3f(0, 0, eps), seed);
     return normal.normalized();
+
+  }
+
+  // call it after the current condition is consumed
+  void GPMedium::sampleCondition(MediumSample& sample, Sampler& medium_sampler) const
+  {
+    uint32_t seed = medium_sampler.nextI();
+
+    sample.conditioning->active = false;
+    if (g_gpSettings.gpMode == GPSettings::GPCorrelationMode::RenewalPlus && sample.exited == false) {
+
+      sample.conditioning->active = true;
+      sample.conditioning->C = sample.p; 
+      /*
+        $$\boxed{\tilde{u} = -\frac{\mu(\mathbf{C})}{A} -
+        \psi_{\text{raw}}(\mathbf{C})}$$
+      */
+      sample.conditioning->u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma() 
+              - evalPsi(sample.p, seed);
+      /*
+        g = -\frac{L^2}{2} \cdot (\text{targetGrad} - \nabla\mu(C) -  
+        \nabla\psi(C))
+      */
+      sample.conditioning->g_tilde = 
+        noiseGenerator_->getKernel()->oneOverSecondDerivative() * 
+              (
+                sample.normal - 
+                muGradient(sample.p) - psiGradient(sample.p, seed)
+              ); 
+      }
 
   }
 }

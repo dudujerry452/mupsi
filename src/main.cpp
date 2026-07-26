@@ -95,7 +95,7 @@ int main()
 
     scene.setMedium(gpmedium);
 
-    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus; // Set GP mode to RenewalPlus
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
 
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
     auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr); 
