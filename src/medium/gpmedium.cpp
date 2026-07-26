@@ -3,6 +3,8 @@
 #include "gp/meanfunction.h"
 #include "math/sampler.h"
 
+#include <iostream>
+
 namespace mupsi {
 
 
@@ -32,7 +34,7 @@ namespace mupsi {
     float nt = ray.nearT(), ft = ray.farT();
     ft = std::min(ft, 2000.0f); 
     int min_depth = 100; // 固化到配置 
-    float max_dt = 0.5; 
+    float max_dt = 0.05; 
     float dt = std::min(max_dt, (ft - nt) / min_depth);
     uint32_t seed = medium_sampler.nextI();
 
@@ -57,6 +59,7 @@ namespace mupsi {
       }
 
       if(hit) {
+        sample.exited = false; 
         sample.t = t; 
         sample.p = ray.origin() + ray.direction() * t; 
         sample.normal =  sampleGradient(sample.p, medium_sampler);
@@ -70,6 +73,9 @@ namespace mupsi {
             Vector3f gradient_scale = Vector3f::Zero();
         };
         */
+
+        // std::cout << "medium hit at " << sample.t << std::endl; 
+
        sample.conditioning->active = false;
        if (g_gpSettings.gpMode == GPSettings::GPCorrelationMode::RenewalPlus) {
 
