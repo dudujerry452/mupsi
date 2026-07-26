@@ -29,6 +29,7 @@ struct IntersectionTemporary {
 }; 
 
 class Bsdf;
+struct GPConditioningState;
 
 struct IntersectionInfo {
 
@@ -43,6 +44,7 @@ struct IntersectionInfo {
 
   // medium
   uint32_t sceneSeed; 
+  GPConditioningState* state = nullptr; 
 
   IntersectionInfo() = default; 
 };

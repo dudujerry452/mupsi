@@ -41,6 +41,9 @@ struct PathTracerSettings {
   float rr = 0.5; 
 };
 
+class Medium; 
+class MediumSample;
+
 
 class PathTracer {
 
@@ -59,6 +62,7 @@ public:
     Sampler& sampler);
 
   bool handleVolume(SurfaceScatterEvent& event, 
+    MediumSample& sample,
     Medium& medium,
     Vector3f& throughput, Vector3f& emission, 
     Ray& ray, 

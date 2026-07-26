@@ -222,7 +222,9 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
     return true; 
 }
 
-bool PathTracer::handleVolume(SurfaceScatterEvent& event, Medium& medium, Vector3f& throughput, Vector3f& emission, 
+bool PathTracer::handleVolume(SurfaceScatterEvent& event, 
+    MediumSample& sample, 
+    Medium& medium, Vector3f& throughput, Vector3f& emission, 
     Ray& ray, 
     Scene& scene, 
     Sampler& sampler, Sampler& medium_sampler) {
@@ -232,7 +234,7 @@ bool PathTracer::handleVolume(SurfaceScatterEvent& event, Medium& medium, Vector
     LightSample light_sample;
     if(scene.chooseLight(info.p, sampler, light_sample)) {
       Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
-      auto trans = medium.transmittance(ray, medium_sampler);
+      auto trans = medium.transmittance(ray, sample, medium_sampler);
       emission += trans.cwiseProduct(
         throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal))
       ); 
@@ -254,8 +256,8 @@ bool PathTracer::handleVolume(SurfaceScatterEvent& event, Medium& medium, Vector
   }
 
 Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp) {
-  // auto pix_seed = make_seed(pixel.x(), pixel.y(), spp, seed);
-  auto pix_seed = seed; 
+  auto pix_seed = make_seed(pixel.x(), pixel.y(), spp, seed);
+  // auto pix_seed = seed; 
   UniformPathSampler path_sampler(pix_seed);
 
   Ray ray = scene.cam().generateRay(pixel.x(), pixel.y());
@@ -264,13 +266,17 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
   Vector3f throughput = Vector3f::Ones() ; 
   bool hasHit = false; 
   int bounce_times = 0; 
+
+  GPConditioningState conditioning;
+  MediumSample sample; // put it outside because it might has a context
+  sample.conditioning = &conditioning; 
+
   do {
     hasHit = false; 
     bool exited = true;  
     // begin medium tracing
     if(scene.getMedium()) {
       Medium* medium = scene.getMedium().get();
-      MediumSample sample; 
       ConstantSampler medium_sampler(pix_seed);
       medium->sampleDistance(ray, sample, medium_sampler); // TODO: assume all the medium use constant sampler like GP Medium
       if(!sample.exited) {
@@ -278,7 +284,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
         IntersectionInfo info; 
         SurfaceScatterEvent event = medium->makeSurfaceEventFromMedium(sample, info, ray, path_sampler, medium_sampler); // path sampler
 
-        if(!handleVolume(event, *medium, throughput, emission, ray, scene, path_sampler, medium_sampler)) {
+        if(!handleVolume(event, sample, *medium, throughput, emission, ray, scene, path_sampler, medium_sampler)) {
           break; 
         }
 

@@ -24,7 +24,7 @@ namespace mupsi {
     Vector3f p;
     Vector3f normal;
 
-    GPConditioningState conditioning;
+    GPConditioningState* conditioning;
     const Bsdf* bsdf;
   };
 
@@ -40,7 +40,7 @@ namespace mupsi {
     public:
 
     virtual bool sampleDistance(Ray& ray, MediumSample& sample, Sampler& medium_sampler) const = 0;
-    virtual Vector3f transmittance(const Ray& ray, Sampler& medium_sampler) const = 0;
+    virtual Vector3f transmittance(const Ray& ray, MediumSample& sample, Sampler& medium_sampler) const = 0;
     virtual Vector3f sampleGradient(const Vector3f& p, Sampler& medium_sampler) const = 0; 
 
     // sampler must be constantsampler

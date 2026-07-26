@@ -13,6 +13,16 @@ namespace mupsi {
     return mean + noise;
   }
 
+  float GPMedium::eval(const Vector3f& p, uint32_t seed, GPConditioningState& state) const {
+    float f = eval(p, seed); 
+    if (state.active) {
+      float hcp = state.u_tilde * noiseGenerator_->getKernel()->h(state.C, p); 
+      float hcp_grad = state.g_tilde.dot(noiseGenerator_->getKernel()->h_grad(state.C, p));
+      return f + hcp + hcp_grad;
+    }
+    return f;
+  }
+
   inline bool sign(float t) {return t > 0.0f;}
 
   // sampler must be ConstantSampler 
@@ -29,18 +39,18 @@ namespace mupsi {
 
     float t = nt;
     float f_c; 
-    float f_prev = eval(ray.origin(), seed);
+    float f_prev = eval(ray.origin(), seed, *sample.conditioning);
     bool hit = false; 
     while (t < ft) {
       Vector3f p = ray.origin() + ray.direction() * t;
-      f_c = eval(p, seed); 
+      f_c = eval(p, seed, *sample.conditioning); 
 
       // TODO: hard-coded value
       if(sign(f_c) != sign(f_prev) && std::fabs(f_prev - f_c) > 1e-6) {
         float factor = f_prev / (f_prev - f_c); 
         do {
           float t_test = std::lerp(t-dt, t, factor); 
-          float f_test = eval(ray.origin() + ray.direction() * t_test, seed);
+          float f_test = eval(ray.origin() + ray.direction() * t_test, seed, *sample.conditioning);
           if(sign(f_test) == sign(f_prev))  break; 
           factor *= 0.9; 
         } while(factor >= 0.01); 
@@ -61,19 +71,19 @@ namespace mupsi {
         };
         */
 
-        sample.conditioning.active = true; 
-        sample.conditioning.C = sample.p; 
+        sample.conditioning->active = true; 
+        sample.conditioning->C = sample.p; 
         /*
           $$\boxed{\tilde{u} = -\frac{\mu(\mathbf{C})}{A} -
           \psi_{\text{raw}}(\mathbf{C})}$$
         */
-        sample.conditioning.u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma() 
+        sample.conditioning->u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma() 
                 - evalPsi(sample.p, seed);
         /*
           g = -\frac{L^2}{2} \cdot (\text{targetGrad} - \nabla\mu(C) -  
           \nabla\psi(C))
         */
-        sample.conditioning.g_tilde = 
+        sample.conditioning->g_tilde = 
           noiseGenerator_->getKernel()->oneOverSecondDerivative() * 
                 (
                   sampleGradient(sample.p, medium_sampler) - 
@@ -91,7 +101,7 @@ namespace mupsi {
     return false; 
   }
 
-  Vector3f GPMedium::transmittance(const Ray& ray, Sampler& sampler) const {
+  Vector3f GPMedium::transmittance(const Ray& ray, MediumSample& sample, Sampler& sampler) const {
     float nt = ray.nearT(), ft = ray.farT();
     ft = std::min(ft, 2000.0f); 
     int min_depth = 100; // 固化到配置 
@@ -101,10 +111,10 @@ namespace mupsi {
 
     float t = nt;
     float f_c; 
-    float f_prev = eval(ray.origin(), seed);
+    float f_prev = eval(ray.origin(), seed, *sample.conditioning);
     while (t < ft) {
       Vector3f p = ray.origin() + ray.direction() * t;
-      f_c = eval(p, seed); 
+      f_c = eval(p, seed, *sample.conditioning); 
 
       // TODO: hard-coded value
       if(sign(f_c) != sign(f_prev) && std::fabs(f_prev - f_c) > 1e-6) {
@@ -116,6 +126,7 @@ namespace mupsi {
     }
     return Vector3f::Ones(); // 能穿过
   }
+  
   
 
   Vector3f GPMedium::sampleGradient(const Vector3f& p, Sampler& medium_sampler) const {
