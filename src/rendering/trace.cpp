@@ -281,7 +281,8 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     bool exited = true;  
     // begin medium tracing
     if(medium) {
-      ConstantSampler medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : pix_seed); // TODO: assume all the medium use constant sampler like GP Medium
+      uint32_t medium_seed = make_seed(pixel.x(), pixel.y(), spp, seed, bounce_times);
+      ConstantSampler medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : medium_seed); // TODO: assume all the medium use constant sampler like GP Medium
       medium->sampleDistance(ray, sample, medium_sampler); // TODO: assume all the medium use constant sampler like GP Medium
       if(!sample.exited) {
 
