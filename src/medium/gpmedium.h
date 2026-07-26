@@ -10,6 +10,10 @@ using namespace Eigen;
 
 namespace mupsi {
 
+
+
+extern GPSettings g_gpSettings;
+
 class MeanFunction; 
 
 class GPMedium : public Medium {

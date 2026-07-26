@@ -47,11 +47,10 @@ class MediumSample;
 
 class PathTracer {
 
-  std::shared_ptr<PathTracerSettings> settings_; 
+  static std::shared_ptr<PathTracerSettings> settings_; 
 
 public: 
   PathTracer() = default; 
-  PathTracer(std::shared_ptr<PathTracerSettings> settings): settings_(settings) {}
   virtual ~PathTracer() = default; 
 
   SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 

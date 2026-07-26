@@ -33,7 +33,7 @@ float GPNoiseGenerator::RawNoise(const Vector3f& pos, uint32_t seed) const
   return sum;
 }
 
-
+GPSettings g_gpSettings;
 
 float SparseGPNoiseGenerator::InternalNoise(const Vector3f& p, uint32_t seed) const
 {
@@ -68,7 +68,7 @@ Vector3f SparseGPNoiseGenerator::Gradient(const Vector3f& p, uint32_t seed) cons
   // reference: 
   /*
       uint32_t seed = sampler.nextI();
-    float eps = gpeps;  // TODO: hard-coded value
+    float eps = g_gpSettings.gpeps;  // TODO: hard-coded value
     Vector3f normal;
     normal.x() = eval(p + Vector3f(eps, 0, 0), seed) - eval(p - Vector3f(eps, 0, 0), seed);
     normal.y() = eval(p + Vector3f(0, eps, 0), seed) - eval(p - Vector3f(0, eps, 0), seed);
@@ -78,9 +78,9 @@ Vector3f SparseGPNoiseGenerator::Gradient(const Vector3f& p, uint32_t seed) cons
   */
 
   Vector3f grad; 
-  grad.x() = RawNoise(p + Vector3f(gpeps, 0, 0), seed) - RawNoise(p - Vector3f(gpeps, 0, 0), seed);
-  grad.y() = RawNoise(p + Vector3f(0, gpeps, 0), seed) - RawNoise(p - Vector3f(0, gpeps, 0), seed);
-  grad.z() = RawNoise(p + Vector3f(0, 0, gpeps), seed) - RawNoise(p - Vector3f(0, 0, gpeps), seed);
+  grad.x() = RawNoise(p + Vector3f(g_gpSettings.gpeps, 0, 0), seed) - RawNoise(p - Vector3f(g_gpSettings.gpeps, 0, 0), seed);
+  grad.y() = RawNoise(p + Vector3f(0, g_gpSettings.gpeps, 0), seed) - RawNoise(p - Vector3f(0, g_gpSettings.gpeps, 0), seed);
+  grad.z() = RawNoise(p + Vector3f(0, 0, g_gpSettings.gpeps), seed) - RawNoise(p - Vector3f(0, 0, g_gpSettings.gpeps), seed);
   return grad.normalized();
 }
 

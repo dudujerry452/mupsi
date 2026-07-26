@@ -38,10 +38,20 @@ private:
 
 };
 
+
+struct GPSettings {
+
+  float gpeps = 1e-4; 
+  enum class GPCorrelationMode { SingleRealization, RenewalPlus };
+  GPCorrelationMode gpMode = GPCorrelationMode::SingleRealization;
+
+}; 
+
+extern GPSettings g_gpSettings;
+
 class Sampler; 
 class SparseConvKernel; 
 
-extern float gpeps; 
 
 class SparseGPNoiseGenerator {
 

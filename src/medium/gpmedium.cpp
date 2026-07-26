@@ -5,7 +5,6 @@
 
 namespace mupsi {
 
-  float gpeps = 1e-4; // TODO: hard-coded value
 
   float GPMedium::eval(const Vector3f& p, uint32_t seed) const {
     float mean = mean_->eval(p);
@@ -61,6 +60,7 @@ namespace mupsi {
         sample.t = t; 
         sample.p = ray.origin() + ray.direction() * t; 
         sample.normal =  sampleGradient(sample.p, medium_sampler);
+        sample.bsdf = bsdf_.get();
 
         /* fill: 
           struct GPConditioningState {
@@ -70,8 +70,10 @@ namespace mupsi {
             Vector3f gradient_scale = Vector3f::Zero();
         };
         */
+       sample.conditioning->active = false;
+       if (g_gpSettings.gpMode == GPSettings::GPCorrelationMode::RenewalPlus) {
 
-        sample.conditioning->active = true; 
+        sample.conditioning->active = true;
         sample.conditioning->C = sample.p; 
         /*
           $$\boxed{\tilde{u} = -\frac{\mu(\mathbf{C})}{A} -
@@ -89,9 +91,8 @@ namespace mupsi {
                   sample.normal - 
                   muGradient(sample.p) - psiGradient(sample.p, seed)
                 ); 
+        }
               
-
-        sample.bsdf = bsdf_.get();
         return true; 
       }
       t += dt;
@@ -131,7 +132,7 @@ namespace mupsi {
 
   Vector3f GPMedium::sampleGradient(const Vector3f& p, Sampler& medium_sampler) const {
     uint32_t seed = medium_sampler.nextI();
-    float eps = gpeps;  // TODO: hard-coded value
+    float eps = g_gpSettings.gpeps;  // TODO: hard-coded value
     Vector3f normal;
     normal.x() = eval(p + Vector3f(eps, 0, 0), seed) - eval(p - Vector3f(eps, 0, 0), seed);
     normal.y() = eval(p + Vector3f(0, eps, 0), seed) - eval(p - Vector3f(0, eps, 0), seed);

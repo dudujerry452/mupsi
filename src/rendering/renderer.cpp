@@ -62,7 +62,7 @@ namespace mupsi
       for(int i = 0; i < w; i ++) {
         Vector3f emmision = Vector3f::Zero();
         for(int k = 0; k < spp; k ++) {
-          PathTracer tracer(std::make_shared<PathTracerSettings>());
+          PathTracer tracer; 
           emmision += tracer.trace(Vector2i(i, j), scene, 0, k);
         }
         emmision *= inv_k;

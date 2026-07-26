@@ -167,6 +167,8 @@ Vector3f traceRay(const Ray &ray, SDFScene &scene, int depth) {
   return Vector3f::Zero();
 }
 
+std::shared_ptr<PathTracerSettings> PathTracer::settings_ = std::make_shared<PathTracerSettings>();
+
 SurfaceScatterEvent PathTracer::makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler) {
   SurfaceScatterEvent event;
   event.wo = -ray.direction();
@@ -277,7 +279,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     // begin medium tracing
     if(scene.getMedium()) {
       Medium* medium = scene.getMedium().get();
-      ConstantSampler medium_sampler(pix_seed);
+      ConstantSampler medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : pix_seed); // TODO: assume all the medium use constant sampler like GP Medium
       medium->sampleDistance(ray, sample, medium_sampler); // TODO: assume all the medium use constant sampler like GP Medium
       if(!sample.exited) {
 
