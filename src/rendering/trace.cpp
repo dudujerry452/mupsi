@@ -254,7 +254,8 @@ bool PathTracer::handleVolume(SurfaceScatterEvent& event, Medium& medium, Vector
   }
 
 Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp) {
-  auto pix_seed = make_seed(pixel.x(), pixel.y(), spp, seed);
+  // auto pix_seed = make_seed(pixel.x(), pixel.y(), spp, seed);
+  auto pix_seed = seed; 
   UniformPathSampler path_sampler(pix_seed);
 
   Ray ray = scene.cam().generateRay(pixel.x(), pixel.y());

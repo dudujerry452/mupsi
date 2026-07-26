@@ -83,10 +83,10 @@ int main()
         
     Scene scene;
 
-    scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, nullptr));
+    scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f, nullptr));
 
     std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
-        std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f),
+        std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f),
         std::make_shared<SparseGPNoiseGenerator>(
             std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
             3
@@ -96,15 +96,18 @@ int main()
     scene.setMedium(gpmedium);
 
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
-    auto light = std::make_shared<Sphere>(Vector3f(2.0f, 0.0f, -3.0f), 1.0f, nullptr); 
+    auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr); 
     light->setEmission(emission_texture); 
     scene.addPrimitive(light);
     
-    scene.setCamera(std::make_shared<Camera>(Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f), 45.0f, 256, 256));
+    scene.setCamera(std::make_shared<Camera>(
+        Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f),
+        45.0f, 1024, 1024
+    ));
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene, 10);
+    renderer.startRender(scene, 1);
     renderer.afterRender();
 
     return 0;
