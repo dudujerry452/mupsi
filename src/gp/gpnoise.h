@@ -47,25 +47,22 @@ class SparseGPNoiseGenerator {
 
   std::shared_ptr<SparseConvKernel> kernel_; 
   int impulseDensity_; 
-  uint32_t seed_; 
 
   private: 
   
-  float InternalNoise(const Vector3f& p) const; 
+  float InternalNoise(const Vector3f& p, uint32_t seed) const; 
 
   public: 
 
   SparseGPNoiseGenerator(std::shared_ptr<SparseConvKernel> kernel, int impulse_density):
-    kernel_(kernel), impulseDensity_(impulse_density), seed_(42){}
+    kernel_(kernel), impulseDensity_(impulse_density){}
 
     // aware: need to setSeed before call it
-  float RawNoise(const Vector3f& p) const {return kernel_->getSigma() * InternalNoise(p) / std::sqrt(Var()); } 
+  float RawNoise(const Vector3f& p, uint32_t seed) const {return kernel_->getSigma() * InternalNoise(p, seed) / std::sqrt(Var()); } 
   float Var() const {return ((impulseDensity_ / std::pow(kernel_->getKernelRadius(), 3)) * std::pow(M_PI, 1.5)); }
 
-  Vector3f Gradient(const Vector3f& p) const;
+  Vector3f Gradient(const Vector3f& p, uint32_t seed) const;
 
-  void setSeed(uint32_t seed) { seed_ = seed; }
-  uint32_t getSeed() const { return seed_; }
   std::shared_ptr<SparseConvKernel> getKernel() const { return kernel_; }
 
 }; 

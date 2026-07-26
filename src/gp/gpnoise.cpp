@@ -35,7 +35,7 @@ float GPNoiseGenerator::RawNoise(const Vector3f& pos, uint32_t seed) const
 
 
 
-float SparseGPNoiseGenerator::InternalNoise(const Vector3f& p) const
+float SparseGPNoiseGenerator::InternalNoise(const Vector3f& p, uint32_t seed) const
 {
 
   Vector3i cell = (p/kernel_->getKernelRadius()).cast<int>();
@@ -44,7 +44,7 @@ float SparseGPNoiseGenerator::InternalNoise(const Vector3f& p) const
     for(int dy = -1; dy <= 1; dy++) {
       for(int dz = -1; dz <= 1; dz++) {
         Vector3i neighbor = cell + Vector3i(dx, dy, dz);
-        uint32_t cell_seed = make_seed(neighbor.x(), neighbor.y(), neighbor.z(), seed_);
+        uint32_t cell_seed = make_seed(neighbor.x(), neighbor.y(), neighbor.z(), seed);
         Random rng(cell_seed + 1u);  // +1 same as sparse-gpis
 
         Vector3f ngbf = neighbor.cast<float>() * kernel_->getKernelRadius();
@@ -63,7 +63,7 @@ float SparseGPNoiseGenerator::InternalNoise(const Vector3f& p) const
   return sum;
 }
 
-Vector3f SparseGPNoiseGenerator::Gradient(const Vector3f& p) const
+Vector3f SparseGPNoiseGenerator::Gradient(const Vector3f& p, uint32_t seed) const
 {
   // reference: 
   /*
@@ -78,9 +78,9 @@ Vector3f SparseGPNoiseGenerator::Gradient(const Vector3f& p) const
   */
 
   Vector3f grad; 
-  grad.x() = RawNoise(p + Vector3f(gpeps, 0, 0)) - RawNoise(p - Vector3f(gpeps, 0, 0));
-  grad.y() = RawNoise(p + Vector3f(0, gpeps, 0)) - RawNoise(p - Vector3f(0, gpeps, 0));
-  grad.z() = RawNoise(p + Vector3f(0, 0, gpeps)) - RawNoise(p - Vector3f(0, 0, gpeps));
+  grad.x() = RawNoise(p + Vector3f(gpeps, 0, 0), seed) - RawNoise(p - Vector3f(gpeps, 0, 0), seed);
+  grad.y() = RawNoise(p + Vector3f(0, gpeps, 0), seed) - RawNoise(p - Vector3f(0, gpeps, 0), seed);
+  grad.z() = RawNoise(p + Vector3f(0, 0, gpeps), seed) - RawNoise(p - Vector3f(0, 0, gpeps), seed);
   return grad.normalized();
 }
 

@@ -9,8 +9,7 @@ namespace mupsi {
 
   float GPMedium::eval(const Vector3f& p, uint32_t seed) const {
     float mean = mean_->eval(p);
-    noiseGenerator_->setSeed(seed);
-    float noise = noiseGenerator_->RawNoise(p);
+    float noise = noiseGenerator_->RawNoise(p, seed);
     return mean + noise;
   }
 

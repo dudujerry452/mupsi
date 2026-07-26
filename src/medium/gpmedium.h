@@ -23,9 +23,9 @@ class GPMedium : public Medium {
 
   float eval(const Vector3f& p, uint32_t seed) const; 
   float evalMu(const Vector3f& p) const {return mean_->eval(p); }
-  float evalPsi(const Vector3f& p, uint32_t seed) const { noiseGenerator_->setSeed(seed);  return noiseGenerator_->RawNoise(p); }
+  float evalPsi(const Vector3f& p, uint32_t seed) const { return noiseGenerator_->RawNoise(p, seed); }
   Vector3f muGradient(const Vector3f& p) const {return mean_->gradient(p); }
-  Vector3f psiGradient(const Vector3f& p, uint32_t seed) const { noiseGenerator_->setSeed(seed); return noiseGenerator_->Gradient(p); }
+  Vector3f psiGradient(const Vector3f& p, uint32_t seed) const { return noiseGenerator_->Gradient(p, seed); }
 
   public: 
   GPMedium(std::shared_ptr<MeanFunction> mean_func, std::shared_ptr<SparseGPNoiseGenerator> noiseGenerator) : mean_(mean_func), noiseGenerator_(noiseGenerator), bsdf_(default_bsdf_) {}
