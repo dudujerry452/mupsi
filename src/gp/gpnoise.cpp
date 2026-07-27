@@ -28,7 +28,9 @@ Vector4f SparseGPNoiseGenerator::InternalNoise1D(float t, uint32_t seed) const
       float dt = dt_grid * kr;                 // world-space distance along ray
 
       if (dt * dt < kr * kr) {  // within kernel support
-        float wi = rng.standard_normal();
+        // Tavernier et al. 2019 用固定数量的 splat 替代 Poisson 分布，用 Bernoulli 权重替代 Gaussian
+        // float wi = rng.standard_normal();
+        float wi = rng.Bernoulli(rng.next1D(), -1.0f, 1.0f, 0.5f);
         float hv = kernel_->h(Vector3f(0.0f, 0.0f, t_i * kr), Vector3f(0.0f, 0.0f, frac * kr));
         val    += wi * hv;                     // value
         grad_z += wi * hv * (-2.0f / L2) * dt; // ∂/∂t gradient
@@ -65,7 +67,9 @@ Vector4f SparseGPNoiseGenerator::InternalNoise(const Vector3f& p, uint32_t seed)
           // if (offset.squaredNorm() > 1.0f) continue;
           Vector3f sample_point = ngbf + offset * kernel_->getKernelRadius();
 
-          float wi = rng.standard_normal();
+          // Tavernier et al. 2019 用固定数量的 splat 替代 Poisson 分布，用 Bernoulli 权重替代 Gaussian
+          // float wi = rng.standard_normal();
+          float wi = rng.Bernoulli(rng.next1D(), -1.0f, 1.0f, 0.5f);
           sum.x() += wi * kernel_->h(sample_point, p); // sum_i wi * h(s, p)
 
           // package grad to sum
