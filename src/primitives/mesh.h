@@ -1,41 +1,63 @@
-#ifndef _MESH_H_ 
-#define _MESH_H_ 
+#ifndef _MESH_H_
+#define _MESH_H_
 
 #include "geometry/primitive.h"
-#include <Eigen/Core> 
+#include "bvh/bvh.h"
+#include <Eigen/Core>
+#include <vector>
+#include <string>
+#include <memory>
 
 using namespace Eigen;
 
-
 namespace mupsi {
 
-
-class  Mesh: public Primitive {
-
-
-
+class Mesh : public Primitive {
 public:
-
   Mesh() = default;
   ~Mesh() = default;
 
-  bool fetchFrom(const std::string& filename); 
+  // Load OBJ file. Returns true on success.
+  bool fetchFrom(const std::string& filename);
 
-  bool intersect(Ray& ray, IntersectionTemporary& data) const; 
-  void intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const;
-  bool occluded(const Ray& ray)const; 
+  // --- Primitive interface ---
+  bool intersect(Ray& ray, IntersectionTemporary& data) const override;
+  void intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const override;
+  bool occluded(const Ray& ray) const override;
+  bool sampleDirect(const Vector3f& p, Sampler& sampler, LightSample& sample) const override;
+  void prepareForRender() override;
 
-  bool sampleDirect(const Vector3f& p, Sampler& sampler, LightSample& sample) const; 
-  void prepareForRender();
+  int bsdfNum() const override { return 1; }
+  const Bsdf* getBsdf(int index) const override;
+  const Texture* getEmission() const override { return emission_.get(); }
+  void setEmission(std::shared_ptr<Texture> emission) override { emission_ = emission; }
 
-  int bsdfNum() const; 
-  const Bsdf* getBsdf(int index) const;  
-  const Texture* getEmission() const; 
-  
-  void setEmission(std::shared_ptr<Texture> emission);
-}; 
+private:
+  // --- Geometry data (loaded from OBJ) ---
+  std::vector<Vector3f> vertices_;
+  std::vector<Vector3f> normals_;       // per-vertex normals (from OBJ or computed)
+  std::vector<Vector2f> texcoords_;     // per-vertex texture coordinates
+  std::vector<Vector3i> faces_;         // (v0, v1, v2) indices into vertices_
+  std::vector<Vector3f> faceNormals_;   // precomputed per-face geometric normals
 
+  // --- Acceleration ---
+  BVH bvh_;
 
-}
+  // --- Material (single BSDF + emission for entire mesh) ---
+  std::shared_ptr<Bsdf> bsdf_;
+  std::shared_ptr<Texture> emission_;
 
-#endif 
+  // --- Light sampling data (computed in prepareForRender) ---
+  std::vector<float> faceCdf_;  // area-weighted CDF for random face selection
+  float totalArea_ = 0.0f;
+
+  // --- Helpers ---
+  void computeFaceNormals();
+  float computeFaceArea(uint32_t faceIdx) const;
+  Vector3f interpolateNormal(uint32_t faceIdx, float u, float v) const;
+  Vector2f interpolateTexcoord(uint32_t faceIdx, float u, float v) const;
+};
+
+} // namespace mupsi
+
+#endif
