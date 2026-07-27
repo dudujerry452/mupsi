@@ -25,8 +25,10 @@ public:
 
   virtual float h(const Vector3f& s, const Vector3f& p) const = 0;
 
-  // for condtioning 
+  // for condtioning
   virtual Vector3f h_grad(const Vector3f& C, const Vector3f& p) const = 0;
+  // H_h · v  =  h(r) · [(-2/L²)·v + (4/L⁴)·(r·v)·r],  r = p - C
+  virtual Vector3f h_hessian_vec(const Vector3f& C, const Vector3f& p, const Vector3f& v) const = 0;
   // g = (1/h''(0)) · delta, for 1/h''(0)
   virtual float oneOverSecondDerivative() const = 0;
   virtual float var(float impulseDensity) const = 0;
@@ -53,6 +55,13 @@ public:
   Vector3f h_grad(const Vector3f& C, const Vector3f& p) const override {
     float L2 = lengthScale_.squaredNorm();
     return h(C, p) * (-2.0f / L2) * (p - C);
+  }
+  // H_h · v = h(r) * ((-2/L²) * v + (4/L⁴) * (r·v) * r), r = p - C
+  Vector3f h_hessian_vec(const Vector3f& C, const Vector3f& p, const Vector3f& v) const override {
+    float L2 = lengthScale_.squaredNorm();
+    Vector3f r = p - C;
+    float hv = h(C, p);
+    return hv * ((-2.0f / L2) * v + (4.0f / (L2 * L2)) * (r.dot(v)) * r);
   }
   float oneOverSecondDerivative() const override {
     return -lengthScale_.squaredNorm() / 2.0f;

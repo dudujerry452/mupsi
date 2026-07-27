@@ -9,17 +9,33 @@ namespace mupsi {
 
 
   float GPMedium::eval(const Vector3f& p, uint32_t seed) const {
-    float mean = mean_->eval(p);
-    float noise = noiseGenerator_->RawNoise(p, seed);
-    return mean + noise;
+    return evalWithGradient(p, seed).x();
   }
 
   float GPMedium::eval(const Vector3f& p, uint32_t seed, GPConditioningState& state) const {
-    float f = eval(p, seed); 
+    return evalWithGradient(p, seed, state).x();
+  }
+
+  Vector4f GPMedium::evalWithGradient(const Vector3f& p, uint32_t seed) const {
+    float mean = mean_->eval(p);
+    Vector3f mean_grad = mean_->gradient(p);
+    Vector4f noise = noiseGenerator_->RawNoise(p, seed);
+    return Vector4f(mean + noise.x(), mean_grad.x() + noise.y(), mean_grad.y() + noise.z(), mean_grad.z() + noise.w());
+  }
+
+  Vector4f GPMedium::evalWithGradient(const Vector3f& p, uint32_t seed, GPConditioningState& state) const {
+    Vector4f f = evalWithGradient(p, seed);
     if (state.active) {
-      float hcp = state.u_tilde * noiseGenerator_->getKernel()->h(state.C, p); 
-      float hcp_grad = state.g_tilde.dot(noiseGenerator_->getKernel()->h_grad(state.C, p));
-      return f + hcp + hcp_grad;
+      auto k = noiseGenerator_->getKernel().get();
+      Vector3f hg = k->h_grad(state.C, p);
+      // value correction:  ũ·h(C,p) + g̃·∇h(C,p)
+      f.x() += state.u_tilde * k->h(state.C, p)
+             + state.g_tilde.dot(hg);
+      // gradient correction:  ũ·∇h(C,p) + H_h(C,p)·g̃
+      Vector3f H_g = k->h_hessian_vec(state.C, p, state.g_tilde);
+      f.y() += state.u_tilde * hg.x() + H_g.x();
+      f.z() += state.u_tilde * hg.y() + H_g.y();
+      f.w() += state.u_tilde * hg.z() + H_g.z();
     }
     return f;
   }
@@ -62,7 +78,8 @@ namespace mupsi {
         sample.exited = false; 
         sample.t = t; 
         sample.p = ray.origin() + ray.direction() * t; 
-        sample.normal =  sampleGradient(sample.p, medium_sampler);
+        Vector4f f = evalWithGradient(sample.p, seed, *sample.conditioning);
+        sample.normal =  f.tail<3>().normalized();
         sample.bsdf = bsdf_.get();
 
         /* fill: 
@@ -112,18 +129,6 @@ namespace mupsi {
   }
   
   
-
-  Vector3f GPMedium::sampleGradient(const Vector3f& p, Sampler& medium_sampler) const {
-    uint32_t seed = medium_sampler.nextI();
-    float eps = g_gpSettings.gpeps;  // TODO: hard-coded value
-    Vector3f normal;
-    normal.x() = eval(p + Vector3f(eps, 0, 0), seed) - eval(p - Vector3f(eps, 0, 0), seed);
-    normal.y() = eval(p + Vector3f(0, eps, 0), seed) - eval(p - Vector3f(0, eps, 0), seed);
-    normal.z() = eval(p + Vector3f(0, 0, eps), seed) - eval(p - Vector3f(0, 0, eps), seed);
-    return normal.normalized();
-
-  }
-
   // call it after the current condition is consumed
   void GPMedium::sampleCondition(MediumSample& sample, Sampler& medium_sampler) const
   {
@@ -134,12 +139,14 @@ namespace mupsi {
 
       sample.conditioning->active = true;
       sample.conditioning->C = sample.p; 
+
+      Vector4f f = evalWithGradient(sample.p, seed);
       /*
         $$\boxed{\tilde{u} = -\frac{\mu(\mathbf{C})}{A} -
         \psi_{\text{raw}}(\mathbf{C})}$$
       */
-      sample.conditioning->u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma() 
-              - evalPsi(sample.p, seed);
+      sample.conditioning->u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma()
+              - f.x();
       /*
         g = -\frac{L^2}{2} \cdot (\text{targetGrad} - \nabla\mu(C) -  
         \nabla\psi(C))
@@ -148,7 +155,7 @@ namespace mupsi {
         noiseGenerator_->getKernel()->oneOverSecondDerivative() * 
               (
                 sample.normal - 
-                muGradient(sample.p) - psiGradient(sample.p, seed)
+                muGradient(sample.p) - f.tail<3>()
               ); 
       }
 
