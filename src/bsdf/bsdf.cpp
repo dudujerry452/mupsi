@@ -1,5 +1,5 @@
 #include "bsdf.h"
-#include "math/random.h"
+#include "math/sampler.h"
 #include "math/sample.h"
 #include "texture/texture.h"
 #include <Eigen/Geometry>

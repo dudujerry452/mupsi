@@ -10,6 +10,7 @@
 #include "io/config.h"
 #include "rendering/renderer.h"
 #include "rendering/trace.h"
+#include "medium/gpmedium.h"
 
 using namespace mupsi;
 using namespace Eigen; 
@@ -32,67 +33,36 @@ int main()
     #else
         printf("OpenMP is not enabled. \n");
     #endif
-
-    // Config cfg;
-    // try {
-    //     cfg = load_config("config.json");
-    //     std::cout << "config loaded successfully" << std::endl;
-    // } catch (const std::exception& e) {
-    //     std::cerr << "config: " << e.what() << " — using defaults" << std::endl;
-    // }
-
-    // g_rayTraceConfig = cfg.trace;
-
-    // SEKernel kernel(3, cfg.cell_size, cfg.length_scale * Vector3f(1.0f, 1.0f, 1.0f));
-    // GPNoiseGenerator gpnoise(kernel, cfg.points_per_cell, cfg.seed);
-
-    // // Select scene type: "sdf" / "single_realization" / "ensemble_renewal_plus"
-    // std::unique_ptr<SDFScene> scene;
-    // if (cfg.gp_mode == "sdf") {
-    //     scene = std::make_unique<SDFScene>();
-    //     std::cout << "mode: SDF (no GP)" << std::endl;
-    // } else {
-    //     if (cfg.gp_mode == "single_realization")
-    //         g_gpMode = GPCorrelationMode::SingleRealization;
-    //     else if (cfg.gp_mode == "ensemble_renewal_plus")
-    //         g_gpMode = GPCorrelationMode::RenewalPlus;
-    //     std::cout << "mode: GP " << cfg.gp_mode << std::endl;
-    //     scene = std::make_unique<GPScene>(gpnoise);
-    // }
-
-    // for (auto& s : cfg.spheres) {
-    //     auto mat = std::make_shared<Material>(s.material.Ka, s.material.has_emission, s.material.emission_value);
-    //     scene->add(std::make_unique<SDFSphere>(s.center, s.radius, mat));
-    // }
-    // for (auto& c : cfg.cubes) {
-    //     auto mat = std::make_shared<Material>(c.material.Ka, c.material.has_emission, c.material.emission_value);
-    //     scene->add(std::make_unique<SDFCube>(c.center, c.size, mat));
-    // }
-
-    // for (auto& l : cfg.parallel_lights)
-    //     scene->addParallelLight({l.direction.normalized(), l.intensity});
-
-    // Camera camera(cfg.cam_pos, cfg.cam_dir, cfg.cam_up, cfg.cam_fov, cfg.cam_aspect_ratio);
-
-    // SDFRenderer renderer(cfg.width, cfg.height);
-    // renderer.render(*scene, camera);
-
-    // renderer.save("test.png");
-
         
     Scene scene;
 
-    scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, nullptr));
+    scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f, nullptr));
+
+    std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
+        std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f),
+        std::make_shared<SparseGPNoiseGenerator>(
+            std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
+            3
+        )
+    );
+
+    scene.setMedium(gpmedium);
+
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
+
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
-    auto light = std::make_shared<Sphere>(Vector3f(2.0f, 0.0f, -3.0f), 1.0f, nullptr); 
+    auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr); 
     light->setEmission(emission_texture); 
     scene.addPrimitive(light);
     
-    scene.setCamera(std::make_shared<Camera>(Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f), 45.0f, 256, 256));
+    scene.setCamera(std::make_shared<Camera>(
+        Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f),
+        45.0f, 256, 256
+    ));
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene, 10);
+    renderer.startRender(scene, 1);
     renderer.afterRender();
 
     return 0;

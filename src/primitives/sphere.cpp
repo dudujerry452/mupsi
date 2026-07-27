@@ -1,6 +1,6 @@
 #include "sphere.h"
 #include "math/sample.h"
-#include "math/random.h"
+#include "math/sampler.h"
 #include "texture/texture.h"
 
 namespace mupsi {
