@@ -78,6 +78,7 @@ public:
         if (state_ == 0) state_ = 1;
         nextI(); nextI(); // warmup
     }
+    void setState(uint64_t s) { state_ = s; }
 
     // unsigned int → float [0, 1), with normalize (same as sparse-gpis BitManip::normalizedUint)
     static float uintBitsToFloat(uint32_t i) {

@@ -17,10 +17,11 @@ Vector4f SparseGPNoiseGenerator::InternalNoise1D(float t, uint32_t seed) const
   float L2 = kernel_->getLengthScale().squaredNorm();
   float val = 0.f, grad_z = 0.f;
 
+  Random rng(1u);
   for (int dx = -1; dx <= 1; dx++) {
     int cell_idx = i + dx;
     uint32_t cell_seed = make_seed(cell_idx, seed);
-    Random rng(cell_seed + 1u);
+    rng.setState(cell_seed + 1u); // +1 to avoid zero state
 
     for (int k = 0; k < impulseDensity_; k++) {
       float t_i = rng.next1D();
@@ -52,12 +53,13 @@ Vector4f SparseGPNoiseGenerator::InternalNoise(const Vector3f& p, uint32_t seed)
 
   Vector3i cell = (p/kernel_->getKernelRadius()).cast<int>();
   Vector4f sum = Vector4f::Zero();
+  Random rng(1u); 
   for(int dx = -1; dx <= 1; dx++) {
     for(int dy = -1; dy <= 1; dy++) {
       for(int dz = -1; dz <= 1; dz++) {
         Vector3i neighbor = cell + Vector3i(dx, dy, dz);
         uint32_t cell_seed = make_seed(neighbor.x(), neighbor.y(), neighbor.z(), seed);
-        Random rng(cell_seed + 1u);  // +1 same as sparse-gpis
+        rng.setState(cell_seed + 1u); // +1 to avoid zero state
 
         Vector3f ngbf = neighbor.cast<float>() * kernel_->getKernelRadius();
 
