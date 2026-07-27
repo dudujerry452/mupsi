@@ -26,8 +26,9 @@ class GPMedium : public Medium {
   private: 
 
   float evalMu(const Vector3f& p) const {return mean_->eval(p); }
-  Vector4f evalPsi(const Vector3f& p, uint32_t seed) const { return noiseGenerator_->RawNoise(p, seed); }
   Vector3f muGradient(const Vector3f& p) const {return mean_->gradient(p); }
+  Vector4f evalPsi(const Vector3f& p, uint32_t seed) const { return noiseGenerator_->RawNoise(p, seed); }
+
 
   float eval(const Vector3f& p, uint32_t seed) const; 
   float eval(const Vector3f& p, uint32_t seed, GPConditioningState& state) const;  

@@ -22,22 +22,27 @@ class SparseConvKernel;
 
 class SparseGPNoiseGenerator {
 
-  std::shared_ptr<SparseConvKernel> kernel_; 
-  int impulseDensity_; 
+  std::shared_ptr<SparseConvKernel> kernel_;
+  int impulseDensity_;
 
-  private: 
-  
-  Vector4f InternalNoise(const Vector3f& p, uint32_t seed) const; 
+  private:
+
+  Vector4f InternalNoise(const Vector3f& p, uint32_t seed) const;
   float Var() const {return ((impulseDensity_ / std::pow(kernel_->getKernelRadius(), 3)) * std::pow(M_PI, 1.5)); }
 
+  // 1D noise along ray: t = distance along ray in world units
+  // returns {value, grad_x, grad_y, grad_z} in isotropic ray space (ray = Z)
+  Vector4f InternalNoise1D(float t, uint32_t seed) const;
+  float Var1D() const {return (impulseDensity_ / kernel_->getKernelRadius()) * std::sqrt(M_PI); }
 
-  public: 
+  public:
 
   SparseGPNoiseGenerator(std::shared_ptr<SparseConvKernel> kernel, int impulse_density):
     kernel_(kernel), impulseDensity_(impulse_density){}
 
-  // x: value, yzw: gradient 
-  Vector4f RawNoise(const Vector3f& p, uint32_t seed) const {return kernel_->getSigma() * InternalNoise(p, seed) / std::sqrt(Var()); } 
+  // x: value, yzw: gradient
+  Vector4f RawNoise(const Vector3f& p, uint32_t seed) const {return kernel_->getSigma() * InternalNoise(p, seed) / std::sqrt(Var()); }
+  Vector4f RawNoise1D(float t, uint32_t seed) const {return kernel_->getSigma() * InternalNoise1D(t, seed) / std::sqrt(Var1D()); }
 
   std::shared_ptr<SparseConvKernel> getKernel() const { return kernel_; }
 
