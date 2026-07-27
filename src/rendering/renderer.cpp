@@ -7,43 +7,6 @@
 namespace mupsi
 {
 
-  Renderer0::Renderer0(int width, int height): fb_(width, height) {}
-
-  SDFRenderer::SDFRenderer(int width, int height): Renderer0(width, height) {}
-
-  void SDFRenderer::render(SDFScene &scene, const Camera &camera)
-  {
-    int total = fb_.height() * fb_.width();
-    std::atomic<int> done{0};
-
-    #pragma omp parallel for collapse(2)
-    for (int j = 0; j < fb_.height(); j++)
-    {
-      for (int i = 0; i < fb_.width(); i++)
-      {
-
-        Ray ray = camera.generateRay(i, j);
-
-        // set thread-local pixel context for per-bounce GP seed generation
-        g_pixel_x = i;
-        g_pixel_y = j;
-        g_spp = 0;
-
-        // calculate intersection
-
-        Vector3f its = traceRay(ray, scene, 0);
-        fb_(i, j) = Color({its});
-
-        int n = ++done;
-        if (n % (total / 100) == 0) {
-          #pragma omp critical
-          std::cerr << "\r" << (100 * n / total) << "%" << std::flush;
-        }
-      }
-    }
-    std::cerr << "\r100%" << std::endl;
-  }
-
   void Renderer::prepareRender(Scene& scene) { 
     framebuffer_ = std::make_shared<Framebuffer>(scene.cam().width(), scene.cam().height());
 
