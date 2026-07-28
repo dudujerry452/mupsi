@@ -177,6 +177,16 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
         ray = Ray(info.p + backside * info.Ng * settings_->eps, event.wi);
         bounce_times ++; 
         hasHit = true;
+      } else { // skydrome
+        if(scene.getSkydrome()) {
+          IntersectionTemporary data; 
+          IntersectionInfo info;
+          scene.getSkydrome()->intersect(ray, data);
+          scene.getSkydrome()->intersectInfo(data, info);
+          Vector3f emis = (*scene.getSkydrome()->getEmission())[info.uv];
+          emission += throughput.cwiseProduct(emis);
+          // std::cout << "skydrome emission: " << emis.transpose() << std::endl;
+        }
       } 
     }
 

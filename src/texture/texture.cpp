@@ -10,7 +10,12 @@ BitmapTexture::BitmapTexture(const std::string& filename) {
 }
 
 bool BitmapTexture::load(const std::string& filename) {
-  cv::Mat img = cv::imread(filename, cv::IMREAD_COLOR);
+  // HDR/EXR: load as float; LDR (PNG/JPG): load as 8-bit
+  std::string ext = filename.substr(filename.find_last_of('.'));
+  bool isHdr = (ext == ".hdr" || ext == ".exr");
+
+  int flags = isHdr ? (cv::IMREAD_ANYDEPTH | cv::IMREAD_COLOR) : cv::IMREAD_COLOR;
+  cv::Mat img = cv::imread(filename, flags);
   if (img.empty()) {
     std::cerr << "BitmapTexture: cannot load " << filename << std::endl;
     return false;
@@ -22,11 +27,20 @@ bool BitmapTexture::load(const std::string& filename) {
   h_ = img.rows;
   data_.resize(w_ * h_);
 
-  for (int y = 0; y < h_; ++y) {
-    const uint8_t* row = img.ptr<uint8_t>(y);
-    for (int x = 0; x < w_; ++x) {
-      Vector3f c(row[3*x] / 255.0f, row[3*x+1] / 255.0f, row[3*x+2] / 255.0f);
-      data_[y * w_ + x] = c;
+  if (isHdr) {
+    for (int y = 0; y < h_; ++y) {
+      const float* row = img.ptr<float>(y);
+      for (int x = 0; x < w_; ++x) {
+        data_[y * w_ + x] = Vector3f(row[3*x], row[3*x+1], row[3*x+2]);
+      }
+    }
+  } else {
+    for (int y = 0; y < h_; ++y) {
+      const uint8_t* row = img.ptr<uint8_t>(y);
+      for (int x = 0; x < w_; ++x) {
+        Vector3f c(row[3*x] / 255.0f, row[3*x+1] / 255.0f, row[3*x+2] / 255.0f);
+        data_[y * w_ + x] = c;
+      }
     }
   }
 

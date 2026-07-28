@@ -48,15 +48,13 @@ int main()
         )
     );
 
-    // scene.setMedium(gpmedium);
-
     g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus; // Set GP mode to SingleRealization
 
     auto spotTex = std::make_shared<BitmapTexture>(
-        "/home/dudujerry/mupsi/models/spot/spot_texture.png");
+        "/home/dudujerry/models/spot/spot_texture.png");
     auto spotBsdf = std::make_shared<LambertianBsdf>(spotTex);
     auto mesh = std::make_shared<Mesh>(spotBsdf);
-    if (!mesh->fetchFrom("/home/dudujerry/mupsi/models/spot/spot_triangulated_good.obj")) {
+    if (!mesh->fetchFrom("/home/dudujerry/models/spot/spot_triangulated_good.obj")) {
         std::cerr << "Failed to load mesh." << std::endl;
         return -1;
     }
@@ -66,14 +64,19 @@ int main()
     // scene.addPrimitive(mesh);
 
     auto nullbsdf = std::make_shared<NullBsdf>();
-    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 120.0f, nullbsdf);
-    sphere->setMedium(gpmedium, nullptr);
+    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 120.0f, nullptr);
+    // sphere->setMedium(gpmedium, nullptr);
     scene.addPrimitive(sphere);
     
     auto sphere2 = std::make_shared<Sphere>(Vector3f(0.0f, 100.0, -200.0f), 50.0f, nullptr);
-    scene.addPrimitive(sphere2);
+    // scene.addPrimitive(sphere2);
 
-    auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(10.0f, 10.0f, 10.0f));
+    auto skydrome = std::make_shared<Skydrome>(
+        std::make_shared<BitmapTexture>("/home/dudujerry/models/envmap.hdr")
+    );
+    scene.setSkydrome(skydrome);
+
+    auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(2.0f, 2.0f, 2.0f));
     auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr);
     light->setEmission(emission_texture);
     auto light2 = std::make_shared<Sphere>(Vector3f(0.0f,  200.0f, -50.0f), 100.0f, nullptr);
@@ -90,7 +93,7 @@ int main()
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene, 3);
+    renderer.startRender(scene, 50);
     renderer.afterRender();
 
     return 0;
