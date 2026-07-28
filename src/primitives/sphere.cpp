@@ -100,7 +100,7 @@ bool Sphere::sampleDirect(const Vector3f& pWorld, Sampler& sampler, LightSample&
   Vector3f dir = -pLocal;
   float dist2 = dir.squaredNorm();
   float d2 = dist2 - 1.0f;
-  if (d2 < 0) return false;
+  if (d2 < 1e-6f) return false;
 
   float d = std::sqrt(d2);
   float dist = std::sqrt(dist2);
