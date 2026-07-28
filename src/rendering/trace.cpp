@@ -19,7 +19,7 @@ namespace mupsi {
 
 std::shared_ptr<PathTracerSettings> PathTracer::settings_ = std::make_shared<PathTracerSettings>();
 
-SurfaceScatterEvent PathTracer::makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler) {
+SurfaceScatterEvent PathTracer::makeSurfaceScatterEvent(IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler) {
   SurfaceScatterEvent event;
   event.wo = -ray.direction();
   event.normal = info.Ng;
@@ -34,18 +34,7 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
     Scene& scene, 
     Sampler& sampler) {
 
-    bool backside = event.wo.dot(event.normal) < 0;
-      if(backside) {
-        event.normal = -event.normal;
-      } 
-
-    // 自发光
     const IntersectionInfo& info = *event.info;
-
-    // notice: medium's primitive is nullptr, but handleSurface is only called when hit hard surface
-    if(info.primitive->getEmission()) {
-      emission += throughput.cwiseProduct((*info.primitive->getEmission())[info.uv]);
-    }
 
     // light sample
     LightSample light_sample;
@@ -55,21 +44,24 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
       ray.setFarT(bias_dist * 0.99f);
       if(!scene.occluded(ray)) {
         // Evaluate BSDF at light direction to get albedo for direct lighting.
-        SurfaceScatterEvent directEvent;
-        directEvent.wo = event.wo;
+
+        SurfaceScatterEvent directEvent = event;
         directEvent.wi = light_sample.d;
-        directEvent.normal = event.normal;
-        directEvent.info = &info;
-        info.bsdf->eval(directEvent);  // weight = albedo * cos / PI
-        info.bsdf->pdf(directEvent);   // pdf = cos / PI
-        Vector3f albedo = directEvent.weight / std::max(directEvent.pdf, 1e-6f);
+        Vector3f albedo = info.bsdf->weight(directEvent); 
+
+        // fabs: sometimes bsdf is transparent, and the normal is flipped
         emission += throughput.cwiseProduct(albedo.cwiseProduct(light_sample.weight))
-                  * std::max(0.0f, light_sample.d.dot(event.normal));
+                  * std::fabs(light_sample.d.dot(event.normal));
       }
     }
 
     // bsdf sample 
     info.bsdf->sample(event); // 填充wi, pdf, rad
+
+    // self-emission, assume that only outside emission is visible 
+    if(info.primitive->getEmission()) {
+      emission += throughput.cwiseProduct((*info.primitive->getEmission())[info.uv] * std::max(0.0f, event.normal.dot(event.wi)));
+    }
 
     throughput = throughput.cwiseProduct((event.weight));
     float survival = throughput.maxCoeff();
@@ -130,14 +122,14 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
   MediumSample sample; // put it outside because it might has a context
   sample.conditioning = &conditioning; 
 
-  Medium* medium = scene.getMedium().get();
-  GPMedium* gpmedium = dynamic_cast<GPMedium*>(medium);
-  
   do {
     hasHit = false; 
     bool exited = true;  
     // begin medium tracing
-    if(medium) {
+    if(getMedium()) {
+      Medium* medium = getMedium().get();
+      GPMedium* gpmedium = dynamic_cast<GPMedium*>(medium);
+
       uint32_t medium_seed = make_seed(pixel.x(), pixel.y(), spp, seed, bounce_times);
       ConstantSampler medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : medium_seed); // TODO: assume all the medium use constant sampler like GP Medium
       medium->sampleDistance(ray, sample, medium_sampler); // TODO: assume all the medium use constant sampler like GP Medium
@@ -154,6 +146,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
           gpmedium->sampleCondition(sample, medium_sampler);
         }
 
+        // not sure is there should be backside
         ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
         bounce_times ++; 
         exited = false; 
@@ -170,13 +163,18 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
 
       if(data.primitive) {
 
-
-        SurfaceScatterEvent event = makeSurfaceScatterEvent(data, info, ray, path_sampler);
+        SurfaceScatterEvent event = makeSurfaceScatterEvent(info, ray, path_sampler);
         if(!handleSurface(event, throughput, emission, ray, scene, path_sampler)) {
-          break; 
+          break; // rr 
         }
 
-        ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
+        bool wibackside = event.wi.dot(event.normal) < 0;
+        float backside = wibackside ? -1.0f : 1.0f;
+        if(wibackside) 
+          setMedium(data.primitive->getIntMedium());
+        else setMedium(data.primitive->getExtMedium());
+
+        ray = Ray(info.p + backside * info.Ng * settings_->eps, event.wi);
         bounce_times ++; 
         hasHit = true;
       } 

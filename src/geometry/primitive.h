@@ -55,6 +55,13 @@ public:
   
   virtual void setEmission(std::shared_ptr<Texture> emission) = 0;
 
+  void setMedium(std::shared_ptr<Medium> intMedium, std::shared_ptr<Medium> extMedium) {
+    intMedium_ = intMedium; 
+    extMedium_ = extMedium; 
+  }
+  const std::shared_ptr<Medium>& getIntMedium() const { return intMedium_; }
+  const std::shared_ptr<Medium>& getExtMedium() const { return extMedium_; }
+
   friend class Renderer; 
   friend class Scene; 
 }; 

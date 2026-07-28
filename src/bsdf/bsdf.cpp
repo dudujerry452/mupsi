@@ -9,8 +9,13 @@ namespace mupsi {
 
   std::shared_ptr<Texture> Bsdf::default_albedo_ = std::make_shared<ConstantTexture>(Vector3f(0.8, 0.8, 0.8));
 
-  void LambertianBsdf::eval(SurfaceScatterEvent& event) const {
-    event.weight = (*albedo_)[event.info->uv] * event.wi.dot(event.normal) / M_PI;
+  Vector3f LambertianBsdf::eval(SurfaceScatterEvent& event) const {
+    return (*albedo_)[event.info->uv] * event.wi.dot(event.normal) / M_PI;
+  }
+
+  float LambertianBsdf::pdf(SurfaceScatterEvent& event) const {
+    float cosTheta = std::max(event.wi.dot(event.normal), 0.0f);
+    return cosTheta / M_PI;
   }
 
   void LambertianBsdf::sample(SurfaceScatterEvent& event) const {
@@ -29,9 +34,22 @@ namespace mupsi {
     event.weight = (*albedo_)[event.info->uv]; // eval / pdf 
   }
 
-  void LambertianBsdf::pdf(SurfaceScatterEvent& event) const {
-    float cosTheta = std::max(event.wi.dot(event.normal), 0.0f);
-    event.pdf = cosTheta / M_PI;
+  Vector3f NullBsdf::eval(SurfaceScatterEvent& event) const {
+    if(event.wi.dot(event.wo) > 0.999f) return Vector3f(1.0f, 1.0f, 1.0f);
+    else return Vector3f(0.0f, 0.0f, 0.0f);
+  }
+  float NullBsdf::pdf(SurfaceScatterEvent& event) const {
+    if(event.wi.dot(-event.wo) > 0.999f) return 1.0f;
+    else return 0.0f;
+  }
+  Vector3f NullBsdf::weight(SurfaceScatterEvent& event) const {
+    if(event.wi.dot(-event.wo) > 0.999f) return Vector3f(1.0f, 1.0f, 1.0f);
+    else return Vector3f(0.0f, 0.0f, 0.0f);
+  }
+  void NullBsdf::sample(SurfaceScatterEvent& event) const {
+    event.wi = -event.wo; // just reflect back
+    event.pdf = 1.0f;
+    event.weight = Vector3f(1.0f, 1.0f, 1.0f);
   }
 
 } 

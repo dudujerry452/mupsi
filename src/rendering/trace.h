@@ -26,6 +26,7 @@ class MediumSample;
 class PathTracer {
 
   static std::shared_ptr<PathTracerSettings> settings_; 
+  std::shared_ptr<Medium> medium_;
 
 public:
   PathTracer() = default;
@@ -33,7 +34,7 @@ public:
 
   static PathTracerSettings& settings() { return *settings_; }
 
-  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 
+  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 
 
   bool handleSurface(SurfaceScatterEvent& event, Vector3f& throughput, Vector3f& emission, 
     Ray& ray, 
@@ -51,6 +52,9 @@ public:
   );
     
   Vector3f trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp); 
+
+  void setMedium(std::shared_ptr<Medium> medium) { medium_ = medium; }
+  std::shared_ptr<Medium> getMedium() const { return medium_; }
 }; 
 }
 
