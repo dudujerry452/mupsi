@@ -51,10 +51,10 @@ int main()
     g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus; // Set GP mode to SingleRealization
 
     auto spotTex = std::make_shared<BitmapTexture>(
-        "/home/dudujerry/mupsi/models/spot/spot_texture.png");
+        "/home/dudujerry/models/spot/spot_texture.png");
     auto spotBsdf = std::make_shared<LambertianBsdf>(spotTex);
     auto mesh = std::make_shared<Mesh>(spotBsdf);
-    if (!mesh->fetchFrom("/home/dudujerry/mupsi/models/spot/spot_triangulated_good.obj")) {
+    if (!mesh->fetchFrom("/home/dudujerry/models/spot/spot_triangulated_good.obj")) {
         std::cerr << "Failed to load mesh." << std::endl;
         return -1;
     }
@@ -72,7 +72,7 @@ int main()
     // scene.addPrimitive(sphere2);
 
     auto skydrome = std::make_shared<Skydrome>(
-        std::make_shared<BitmapTexture>("/home/dudujerry/mupsi/models/envmap.hdr")
+        std::make_shared<BitmapTexture>("/home/dudujerry/models/envmap.hdr")
     );
     scene.setSkydrome(skydrome);
 
