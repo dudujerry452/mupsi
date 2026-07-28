@@ -35,15 +35,21 @@ namespace mupsi {
   }
 
   Vector3f NullBsdf::eval(SurfaceScatterEvent& event) const {
-    return Vector3f(0.0f, 0.0f, 0.0f);
+    if(event.wi.dot(event.wo) > 0.999f) return Vector3f(1.0f, 1.0f, 1.0f);
+    else return Vector3f(0.0f, 0.0f, 0.0f);
   }
   float NullBsdf::pdf(SurfaceScatterEvent& event) const {
-    return 1.0f;
+    if(event.wi.dot(-event.wo) > 0.999f) return 1.0f;
+    else return 0.0f;
+  }
+  Vector3f NullBsdf::weight(SurfaceScatterEvent& event) const {
+    if(event.wi.dot(-event.wo) > 0.999f) return Vector3f(1.0f, 1.0f, 1.0f);
+    else return Vector3f(0.0f, 0.0f, 0.0f);
   }
   void NullBsdf::sample(SurfaceScatterEvent& event) const {
-    event.wi = event.wo; // just reflect back
+    event.wi = -event.wo; // just reflect back
     event.pdf = 1.0f;
-    event.weight = Vector3f(0.0f, 0.0f, 0.0f);
+    event.weight = Vector3f(1.0f, 1.0f, 1.0f);
   }
 
 } 

@@ -48,7 +48,7 @@ class Bsdf {
     virtual Vector3f eval(SurfaceScatterEvent& event) const = 0; // calculate radience 
     virtual float pdf(SurfaceScatterEvent& event) const = 0;  // wi, wo -> pdf
 
-    Vector3f weight(SurfaceScatterEvent& event) const {
+    virtual Vector3f weight(SurfaceScatterEvent& event) const {
       float pdf_val = pdf(event); 
       if(pdf_val != 0.0f) return eval(event) / pdf_val; 
       else  return Vector3f(0.0f, 0.0f, 0.0f); 
@@ -82,6 +82,9 @@ class NullBsdf: public Bsdf {
 
     Vector3f eval(SurfaceScatterEvent& event) const override; 
     float pdf(SurfaceScatterEvent& event) const override;  
+
+    Vector3f weight(SurfaceScatterEvent& event) const override; 
+
     void sample(SurfaceScatterEvent& event) const override;   
 }; 
 }

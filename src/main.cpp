@@ -68,6 +68,11 @@ int main()
     // auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, -100.0f, -420.0f), 100.0f, nullptr);
     // scene.addPrimitive(sphere);
 
+    
+    auto nullbsdf = std::make_shared<NullBsdf>();
+    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0, 0.0f), 100.0f, nullbsdf);
+    scene.addPrimitive(sphere);
+
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(10.0f, 10.0f, 10.0f));
     auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr);
     light->setEmission(emission_texture);
