@@ -3,6 +3,8 @@
 #include "texture/texture.h"
 #include "math/sampler.h"
 #include "math/sample.h"
+#include "bvh/bvh.h"
+#include "geometry/ray.h"
 
 #include <fstream>
 #include <sstream>
@@ -132,6 +134,9 @@ bool Mesh::fetchFrom(const std::string& filename) {
   // Initialize BSDF with default
   bsdf_ = Primitive::default_bsdf_;
 
+  // Initialize normal transform to identity
+  normalTransform_ = Matrix3f::Identity();
+
   return true;
 }
 
@@ -183,9 +188,27 @@ Vector2f Mesh::interpolateTexcoord(uint32_t faceIdx, float u, float v) const {
 // --- Primitive interface ---
 
 bool Mesh::intersect(Ray& ray, IntersectionTemporary& data) const {
-  bool hit = bvh_.intersect(ray, data);
+  // Transform ray to local (object) space.
+  // Ray constructor normalizes direction — we need to account for the scale change.
+  Ray localRay = ray;
+  float tCorrection = 1.0f;
+  if (!invTransform_.isIdentity()) {
+    Vector4f localOrigin4 = invTransform_ * Vector4f(ray.origin().x(), ray.origin().y(), ray.origin().z(), 1.0f);
+    Vector3f localDirUnnorm = invTransform_.topLeftCorner<3,3>() * ray.direction();
+    float len = localDirUnnorm.norm();
+    // localDir_norm = localDirUnnorm / len  (Ray constructor normalizes)
+    // t_world = t_local * |transform_.linear() * localDir_norm|
+    tCorrection = (transform_.topLeftCorner<3,3>() * (localDirUnnorm / len)).norm();
+    // Scale nearT/farT so the t interval is correct in local normalized units
+    localRay = Ray(localOrigin4.head<3>(), localDirUnnorm);
+    localRay.setNearT(ray.nearT() * len);
+    localRay.setFarT(ray.farT() * len);
+  }
+
+  bool hit = bvh_.intersect(localRay, data);
   if (hit) {
     data.primitive = this;
+    ray.setFarT(localRay.farT() * tCorrection);
   }
   return hit;
 }
@@ -199,13 +222,36 @@ void Mesh::intersectInfo(const IntersectionTemporary& data, IntersectionInfo& in
   info.primitive = this;
   info.t = info.t;
   info.p = info.p;
-  info.Ng = interpolateNormal(fi, u, v);
+
+  // Get local-space normal from mesh data, then transform to world
+  Vector3f localNg = interpolateNormal(fi, u, v);
+
+  if (!invTransform_.isIdentity()) {
+    // Normal transform: n_world = (M^{-1})^T * n_local, then normalize
+    info.Ng = normalTransform_ * localNg;
+    info.Ng.normalize();
+  } else {
+    info.Ng = localNg;
+  }
+
   info.uv = interpolateTexcoord(fi, u, v);
   info.bsdf = getBsdf(0);
 }
 
 bool Mesh::occluded(const Ray& ray) const {
-  return bvh_.occluded(ray);
+  if (invTransform_.isIdentity()) {
+    return bvh_.occluded(ray);
+  }
+
+  // Transform ray to local space, accounting for direction normalization
+  Vector4f localOrigin4 = invTransform_ * Vector4f(ray.origin().x(), ray.origin().y(), ray.origin().z(), 1.0f);
+  Vector3f localDirUnnorm = invTransform_.topLeftCorner<3,3>() * ray.direction();
+  float len = localDirUnnorm.norm();
+  Ray localRay(localOrigin4.head<3>(), localDirUnnorm);
+  localRay.setNearT(ray.nearT() * len);
+  localRay.setFarT(ray.farT() * len);
+
+  return bvh_.occluded(localRay);
 }
 
 bool Mesh::sampleDirect(const Vector3f& p, Sampler& sampler, LightSample& sample) const {
@@ -232,9 +278,16 @@ bool Mesh::sampleDirect(const Vector3f& p, Sampler& sampler, LightSample& sample
   const Vector3f& v2 = vertices_[f.z()];
   Vector3f edge1 = v1 - v0;
   Vector3f edge2 = v2 - v0;
-  Vector3f pt = v0 + edge1 * bary_u + edge2 * bary_v;
+  Vector3f ptLocal = v0 + edge1 * bary_u + edge2 * bary_v;
 
-  Vector3f dir = pt - p;
+  // Transform sampled point to world space if needed
+  Vector3f ptWorld = ptLocal;
+  if (!invTransform_.isIdentity()) {
+    Vector4f ptWorld4 = transform_ * Vector4f(ptLocal.x(), ptLocal.y(), ptLocal.z(), 1.0f);
+    ptWorld = ptWorld4.head<3>();
+  }
+
+  Vector3f dir = ptWorld - p;
   float dist2 = dir.squaredNorm();
   float dist = std::sqrt(dist2);
   sample.d = dir / dist;

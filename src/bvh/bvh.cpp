@@ -64,7 +64,7 @@ void BVH::build(const Vector3f* vertices, const Vector3i* faces, uint32_t triCou
   nodes_.clear();
   nodes_.reserve(2 * triCount);
 
-  buildRecursive(0, triCount);
+  rootIndex_ = buildRecursive(0, triCount);
 }
 
 uint32_t BVH::buildRecursive(uint32_t begin, uint32_t end) {
@@ -138,7 +138,7 @@ bool BVH::intersect(Ray& ray, IntersectionTemporary& data) const {
   bool hit = false;
   uint32_t stack[64];
   int32_t sp = 0;
-  stack[sp++] = 0; // root node
+  stack[sp++] = rootIndex_;
 
   while (sp > 0) {
     uint32_t nodeIdx = stack[--sp];
@@ -235,6 +235,27 @@ bool BVH::occluded(const Ray& ray) const {
   }
 
   return false;
+}
+
+// --- brute-force debug ---
+
+bool BVH::intersectBruteForce(Ray& ray, IntersectionTemporary& data) const {
+  if (triCount_ == 0) return false;
+
+  bool hit = false;
+  for (uint32_t i = 0; i < triCount_; ++i) {
+    const Vector3i& f = faces_[i];
+    float t, u, v;
+    if (rayTriIntersect(ray, vertices_[f.x()], vertices_[f.y()], vertices_[f.z()], t, u, v)) {
+      ray.setFarT(t);
+      auto* mi = data.as<MeshIntersection>();
+      mi->triIndex = i;
+      mi->u = u;
+      mi->v = v;
+      hit = true;
+    }
+  }
+  return hit;
 }
 
 } // namespace mupsi

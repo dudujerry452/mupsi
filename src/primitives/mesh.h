@@ -20,6 +20,12 @@ public:
   // Load OBJ file. Returns true on success.
   bool fetchFrom(const std::string& filename);
 
+  // Set object-to-world transform. Also computes normal transform = (M^{-1})^T.
+  void setTransform(const Matrix4f& transform) override {
+    Primitive::setTransform(transform);
+    normalTransform_ = invTransform_.topLeftCorner<3,3>().transpose();
+  }
+
   // --- Primitive interface ---
   bool intersect(Ray& ray, IntersectionTemporary& data) const override;
   void intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const override;
@@ -42,6 +48,9 @@ private:
 
   // --- Acceleration ---
   BVH bvh_;
+
+  // --- Transform (normal transform = (M^{-1})^T upper 3x3) ---
+  Matrix3f normalTransform_;
 
   // --- Material (single BSDF + emission for entire mesh) ---
   std::shared_ptr<Bsdf> bsdf_;

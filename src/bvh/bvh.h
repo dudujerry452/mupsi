@@ -50,6 +50,11 @@ public:
   // Early-exit shadow ray test. Returns true if any triangle occludes.
   bool occluded(const Ray& ray) const;
 
+  // Debug: brute-force intersect — loop every triangle, no BVH.
+  bool intersectBruteForce(Ray& ray, IntersectionTemporary& data) const;
+
+  uint32_t rootIndex_ = 0;
+
 private:
   std::vector<Node> nodes_;
   std::vector<uint32_t> triIndices_; // reordered for spatial locality

@@ -5,6 +5,7 @@
 #include "intersection.h"
 #include "bsdf/bsdf.h"
 
+#include <Eigen/Dense>
 #include <memory>
 
 namespace mupsi {
@@ -23,13 +24,23 @@ protected:
   static std::shared_ptr<Bsdf> default_bsdf_; 
   static std::shared_ptr<Texture> default_emission_; 
 
-  Matrix4f transform_; 
+  Matrix4f transform_;
   Matrix4f invTransform_;
 
-public: 
-  Primitive() = default;
-  virtual ~Primitive() = default; 
+public:
+  Primitive() {
+    transform_    = Matrix4f::Identity();
+    invTransform_ = Matrix4f::Identity();
+  }
+  virtual ~Primitive() = default;
 
+  // Set object-to-world transform. Subclasses may override to bake or use for ray-transform.
+  virtual void setTransform(const Matrix4f& transform) {
+    transform_    = transform;
+    invTransform_ = transform.inverse();
+  }
+  const Matrix4f& getTransform()    const { return transform_; }
+  const Matrix4f& getInvTransform() const { return invTransform_; }
 
   virtual bool intersect(Ray& ray, IntersectionTemporary& data) const = 0; 
   virtual void intersectInfo(const IntersectionTemporary& data, IntersectionInfo& info) const = 0;
