@@ -4,6 +4,7 @@
 #include "ray.h"
 #include "gp/gpnoise.h"
 #include "bsdf/bsdf.h"
+#include "primitives/skydrome.h"
 #include <memory>
 #include <vector>
 
@@ -28,7 +29,8 @@ namespace mupsi
 
       std::shared_ptr<Camera> camera_;
 
-      std::shared_ptr<Medium> medium_;
+      std::shared_ptr<Medium> medium_; // deprecated 
+      std::shared_ptr<Skydrome> skydrome_; 
 
       public: 
 
@@ -45,6 +47,8 @@ namespace mupsi
 
       void setMedium(std::shared_ptr<Medium> medium) { medium_ = medium; }
       std::shared_ptr<Medium> getMedium() const { return medium_; }
+      void setSkydrome(std::shared_ptr<Skydrome> skydrome) { skydrome_ = skydrome; }
+      std::shared_ptr<Skydrome> getSkydrome() const { return skydrome_; }
 
       const Camera& cam() const { return *camera_; }
 

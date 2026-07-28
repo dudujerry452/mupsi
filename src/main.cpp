@@ -48,8 +48,6 @@ int main()
         )
     );
 
-    // scene.setMedium(gpmedium);
-
     g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus; // Set GP mode to SingleRealization
 
     auto spotTex = std::make_shared<BitmapTexture>(
@@ -67,11 +65,16 @@ int main()
 
     auto nullbsdf = std::make_shared<NullBsdf>();
     auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 120.0f, nullbsdf);
-    sphere->setMedium(gpmedium, nullptr);
+    // sphere->setMedium(gpmedium, nullptr);
     scene.addPrimitive(sphere);
     
     auto sphere2 = std::make_shared<Sphere>(Vector3f(0.0f, 100.0, -200.0f), 50.0f, nullptr);
     scene.addPrimitive(sphere2);
+
+    auto skydrome = std::make_shared<Skydrome>(
+        std::make_shared<ConstantTexture>(Vector3f(0.1f, 0.5f, 0.1f))
+    );
+    scene.setSkydrome(skydrome);
 
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(10.0f, 10.0f, 10.0f));
     auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr);

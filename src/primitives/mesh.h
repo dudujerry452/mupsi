@@ -14,11 +14,11 @@ namespace mupsi {
 
 class Mesh : public Primitive {
 public:
-  Mesh() = default;
+  Mesh() {normalTransform_ = invTransform_.topLeftCorner<3,3>().transpose(); }
   ~Mesh() = default;
 
   Mesh(std::shared_ptr<Bsdf> bsdf)
-      : bsdf_(bsdf) {}
+      : Mesh() { bsdf_ = bsdf; }
 
   // Load OBJ file. Returns true on success.
   bool fetchFrom(const std::string& filename);
