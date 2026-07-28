@@ -45,9 +45,15 @@ class Bsdf {
     virtual ~Bsdf() = default; 
     Bsdf() = default;
 
-    virtual void eval(SurfaceScatterEvent& event) const = 0; // calculate radience 
-    virtual void sample(SurfaceScatterEvent& event) const = 0;  // pick a wi randomly
-    virtual void pdf(SurfaceScatterEvent& event) const = 0;  // wi, wo -> pdf
+    virtual Vector3f eval(SurfaceScatterEvent& event) const = 0; // calculate radience 
+    virtual float pdf(SurfaceScatterEvent& event) const = 0;  // wi, wo -> pdf
+
+    Vector3f weight(SurfaceScatterEvent& event) const {
+      return eval(event) / std::max(pdf(event), 1e-6f); 
+    }
+
+    virtual void sample(SurfaceScatterEvent& event) const = 0;  // pick a wi randomly, and fill pdf, weight
+    
 }; 
 
 class LambertianBsdf: public Bsdf {
@@ -58,13 +64,24 @@ class LambertianBsdf: public Bsdf {
     LambertianBsdf(std::shared_ptr<Texture> albedo): albedo_(albedo) {};
     virtual ~LambertianBsdf() = default; 
 
-    void eval(SurfaceScatterEvent& event) const override; 
+    Vector3f eval(SurfaceScatterEvent& event) const override; 
+    float pdf(SurfaceScatterEvent& event) const override;  
     void sample(SurfaceScatterEvent& event) const override;  
-    void pdf(SurfaceScatterEvent& event) const override;  
 
   private:
     std::shared_ptr<Texture> albedo_;
 };
+
+
+class NullBsdf: public Bsdf {
+  public: 
+    NullBsdf() = default; 
+    virtual ~NullBsdf() = default; 
+
+    Vector3f eval(SurfaceScatterEvent& event) const override; 
+    float pdf(SurfaceScatterEvent& event) const override;  
+    void sample(SurfaceScatterEvent& event) const override;   
+}; 
 }
 
 #endif 
