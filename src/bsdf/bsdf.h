@@ -49,7 +49,9 @@ class Bsdf {
     virtual float pdf(SurfaceScatterEvent& event) const = 0;  // wi, wo -> pdf
 
     Vector3f weight(SurfaceScatterEvent& event) const {
-      return eval(event) / std::max(pdf(event), 1e-6f); 
+      float pdf_val = pdf(event); 
+      if(pdf_val != 0.0f) return eval(event) / pdf_val; 
+      else  return Vector3f(0.0f, 0.0f, 0.0f); 
     }
 
     virtual void sample(SurfaceScatterEvent& event) const = 0;  // pick a wi randomly, and fill pdf, weight

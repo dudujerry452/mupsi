@@ -34,16 +34,13 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
     Scene& scene, 
     Sampler& sampler) {
 
-    float backside = event.wo.dot(event.normal) < 0 ? -1.0f : 1.0f;
-    event.normal = backside * event.normal;
-
     const IntersectionInfo& info = *event.info;
 
     // light sample
     LightSample light_sample;
     if(scene.chooseLight(info.p, sampler, light_sample)) {
-      Ray ray(info.p + backside * event.normal * settings_->eps, light_sample.d);
-      float bias_dist = light_sample.dist - backside * settings_->eps * std::abs(light_sample.d.dot(event.normal));
+      Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
+      float bias_dist = light_sample.dist - settings_->eps * std::abs(light_sample.d.dot(event.normal));
       ray.setFarT(bias_dist * 0.99f);
       if(!scene.occluded(ray)) {
         // Evaluate BSDF at light direction to get albedo for direct lighting.
@@ -52,15 +49,16 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
         directEvent.wi = light_sample.d;
         Vector3f albedo = info.bsdf->weight(directEvent); 
 
+        // fabs: sometimes bsdf is transparent, and the normal is flipped
         emission += throughput.cwiseProduct(albedo.cwiseProduct(light_sample.weight))
-                  * std::max(0.0f, light_sample.d.dot(event.normal));
+                  * std::fabs(light_sample.d.dot(event.normal));
       }
     }
 
     // bsdf sample 
     info.bsdf->sample(event); // 填充wi, pdf, rad
 
-    // self-emission
+    // self-emission, assume that only outside emission is visible 
     if(info.primitive->getEmission()) {
       emission += throughput.cwiseProduct((*info.primitive->getEmission())[info.uv] * std::max(0.0f, event.normal.dot(event.wi)));
     }
@@ -124,14 +122,14 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
   MediumSample sample; // put it outside because it might has a context
   sample.conditioning = &conditioning; 
 
-  Medium* medium = scene.getMedium().get();
-  GPMedium* gpmedium = dynamic_cast<GPMedium*>(medium);
-  
   do {
     hasHit = false; 
     bool exited = true;  
     // begin medium tracing
-    if(medium) {
+    if(getMedium()) {
+      Medium* medium = getMedium().get();
+      GPMedium* gpmedium = dynamic_cast<GPMedium*>(medium);
+
       uint32_t medium_seed = make_seed(pixel.x(), pixel.y(), spp, seed, bounce_times);
       ConstantSampler medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : medium_seed); // TODO: assume all the medium use constant sampler like GP Medium
       medium->sampleDistance(ray, sample, medium_sampler); // TODO: assume all the medium use constant sampler like GP Medium
@@ -170,7 +168,11 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
           break; // rr 
         }
 
-        float backside = event.wi.dot(event.normal) < 0 ? -1.0f : 1.0f;
+        bool wibackside = event.wi.dot(event.normal) < 0;
+        float backside = wibackside ? -1.0f : 1.0f;
+        if(wibackside) 
+          setMedium(data.primitive->getIntMedium());
+        else setMedium(data.primitive->getExtMedium());
 
         ray = Ray(info.p + backside * info.Ng * settings_->eps, event.wi);
         bounce_times ++; 

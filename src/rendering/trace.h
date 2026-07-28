@@ -54,7 +54,7 @@ public:
   Vector3f trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp); 
 
   void setMedium(std::shared_ptr<Medium> medium) { medium_ = medium; }
-  std::shared_ptr<Medium> medium() const { return medium_; }
+  std::shared_ptr<Medium> getMedium() const { return medium_; }
 }; 
 }
 
