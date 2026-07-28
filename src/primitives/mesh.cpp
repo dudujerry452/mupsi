@@ -28,6 +28,7 @@ bool Mesh::fetchFrom(const std::string& filename) {
   normals_.clear();
   texcoords_.clear();
   faces_.clear();
+  faceTexIndices_.clear();
 
   std::string line;
   while (std::getline(file, line)) {
@@ -58,48 +59,42 @@ bool Mesh::fetchFrom(const std::string& filename) {
       texcoords_.emplace_back(u, v);
     } else if (type == "f") {
       std::vector<uint32_t> vindices;
+      std::vector<uint32_t> tindices; // texcoord indices for this face
       std::string vertSpec;
       while (iss >> vertSpec) {
-        // Parse v/vt/vn format
         int vi = 0, vti = 0, vni = 0;
-        // Count slashes
+
         size_t slash1 = vertSpec.find('/');
         if (slash1 == std::string::npos) {
-          // Format: v
           vi = std::stoi(vertSpec);
         } else {
           vi = std::stoi(vertSpec.substr(0, slash1));
           size_t slash2 = vertSpec.find('/', slash1 + 1);
-          if (slash2 == std::string::npos || slash1 + 1 == slash2) {
-            // Format: v/ or v/vt or v//vn
-            if (slash1 + 1 < vertSpec.size()) {
-              if (slash1 + 1 != slash2) {
-                std::string mid = vertSpec.substr(slash1 + 1, (slash2 == std::string::npos) ? std::string::npos : slash2 - slash1 - 1);
-                if (!mid.empty()) vti = std::stoi(mid);
-              }
-            }
-            if (slash2 != std::string::npos && slash2 + 1 < vertSpec.size()) {
+          if (slash2 == std::string::npos) {
+            // v/vt  format
+            vti = std::stoi(vertSpec.substr(slash1 + 1));
+          } else if (slash1 + 1 == slash2) {
+            // v//vn format
+            if (slash2 + 1 < vertSpec.size())
               vni = std::stoi(vertSpec.substr(slash2 + 1));
-            }
           } else {
-            // Format: v/vt/vn
+            // v/vt/vn format
             vti = std::stoi(vertSpec.substr(slash1 + 1, slash2 - slash1 - 1));
-            vni = std::stoi(vertSpec.substr(slash2 + 1));
+            if (slash2 + 1 < vertSpec.size())
+              vni = std::stoi(vertSpec.substr(slash2 + 1));
           }
         }
 
-        // Normalize negative indices (OBJ uses 1-based, negative = relative to end)
+        // Normalize 1-based → 0-based, handle negative indices
         auto normIdx = [](int idx, size_t count) -> uint32_t {
           if (idx > 0) return static_cast<uint32_t>(idx - 1);
           if (idx < 0) return static_cast<uint32_t>(static_cast<int>(count) + idx);
-          return 0; // should not happen
+          return 0u;
         };
 
         vindices.push_back(normIdx(vi, vertices_.size()));
-        // Store texcoord and normal indices for later (unused for now,
-        // but we consume them to avoid parsing errors)
-        (void)vti;
-        (void)vni;
+        tindices.push_back(normIdx(vti, texcoords_.size()));
+        (void)vni; // normal index currently unused
       }
 
       if (vindices.size() < 3) {
@@ -113,6 +108,7 @@ bool Mesh::fetchFrom(const std::string& filename) {
       }
 
       faces_.emplace_back(vindices[0], vindices[1], vindices[2]);
+      faceTexIndices_.emplace_back(tindices[0], tindices[1], tindices[2]);
     }
     // Ignore other line types (o, g, s, usemtl, mtllib, etc.)
   }
@@ -131,8 +127,10 @@ bool Mesh::fetchFrom(const std::string& filename) {
   // Compute per-face geometric normals
   computeFaceNormals();
 
-  // Initialize BSDF with default
-  bsdf_ = Primitive::default_bsdf_;
+  // Initialize BSDF with default (only if not already set by constructor)
+  if (!bsdf_) {
+    bsdf_ = Primitive::default_bsdf_;
+  }
 
   // Initialize normal transform to identity
   normalTransform_ = Matrix3f::Identity();
@@ -177,12 +175,12 @@ Vector3f Mesh::interpolateNormal(uint32_t faceIdx, float u, float v) const {
 }
 
 Vector2f Mesh::interpolateTexcoord(uint32_t faceIdx, float u, float v) const {
-  if (texcoords_.empty()) {
+  if (texcoords_.empty() || faceTexIndices_.empty()) {
     return Vector2f(u, v);
   }
-  const Vector3i& f = faces_[faceIdx];
+  const Vector3i& ti = faceTexIndices_[faceIdx];
   float w = 1.0f - u - v;
-  return w * texcoords_[f.x()] + u * texcoords_[f.y()] + v * texcoords_[f.z()];
+  return w * texcoords_[ti.x()] + u * texcoords_[ti.y()] + v * texcoords_[ti.z()];
 }
 
 // --- Primitive interface ---

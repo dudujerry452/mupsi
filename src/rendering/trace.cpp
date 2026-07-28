@@ -47,17 +47,24 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
       emission += throughput.cwiseProduct((*info.primitive->getEmission())[info.uv]);
     }
 
-    // light sample 
-    // emission += throughput.cwiseProduct(Vector3f(1.0f, 1.0f, 0.0f)) * std::max(0.0f, Vector3f(1.0f, 0.0f, 0.0f).dot(event.normal)); 
-
+    // light sample
     LightSample light_sample;
     if(scene.chooseLight(info.p, sampler, light_sample)) {
       Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
-      // important: fix farT because the origin point of ray is p + eps
       float bias_dist = light_sample.dist - settings_->eps * std::abs(light_sample.d.dot(event.normal));
-      ray.setFarT(bias_dist * 0.99f);  // stop before light surface
+      ray.setFarT(bias_dist * 0.99f);
       if(!scene.occluded(ray)) {
-        emission += throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal));
+        // Evaluate BSDF at light direction to get albedo for direct lighting.
+        SurfaceScatterEvent directEvent;
+        directEvent.wo = event.wo;
+        directEvent.wi = light_sample.d;
+        directEvent.normal = event.normal;
+        directEvent.info = &info;
+        info.bsdf->eval(directEvent);  // weight = albedo * cos / PI
+        info.bsdf->pdf(directEvent);   // pdf = cos / PI
+        Vector3f albedo = directEvent.weight / std::max(directEvent.pdf, 1e-6f);
+        emission += throughput.cwiseProduct(albedo.cwiseProduct(light_sample.weight))
+                  * std::max(0.0f, light_sample.d.dot(event.normal));
       }
     }
 

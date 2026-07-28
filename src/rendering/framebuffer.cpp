@@ -29,7 +29,8 @@ namespace mupsi
                 for (int x = 0; x < w_; x++)
                 {
                     const auto &c = (*this)(x, y).rgb;
-                    img.at<cv::Vec3f>(h_ - 1 - y, x) = cv::Vec3f(c.x(), c.y(), c.z());
+                    // OpenCV uses BGR order
+                    img.at<cv::Vec3f>(h_ - 1 - y, x) = cv::Vec3f(c.z(), c.y(), c.x());
                 }
             cv::imwrite(filename, img);
         }
@@ -42,10 +43,11 @@ namespace mupsi
                     const auto &c = (*this)(x, y).rgb;
                     auto tone = [](float v)
                     { return v / (1.0f + v); };
+                    // OpenCV uses BGR order: write B, G, R
                     img.at<cv::Vec3b>(h_ - 1 - y, x) = cv::Vec3b(
-                        uint8_t(std::clamp(tone(c.x()), 0.0f, 1.0f) * 255.0f),
+                        uint8_t(std::clamp(tone(c.z()), 0.0f, 1.0f) * 255.0f),
                         uint8_t(std::clamp(tone(c.y()), 0.0f, 1.0f) * 255.0f),
-                        uint8_t(std::clamp(tone(c.z()), 0.0f, 1.0f) * 255.0f));
+                        uint8_t(std::clamp(tone(c.x()), 0.0f, 1.0f) * 255.0f));
                 }
             cv::imwrite(filename, img);
         }

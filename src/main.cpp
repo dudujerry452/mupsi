@@ -12,6 +12,7 @@
 #include "rendering/trace.h"
 #include "medium/gpmedium.h"
 #include "primitives/mesh.h"
+#include "bsdf/bsdf.h"
 
 using namespace mupsi;
 using namespace Eigen;
@@ -51,15 +52,16 @@ int main()
 
     // g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
 
-    // Bunny at ~original sphere scale: Scale(1111) makes 0.18-tall bunny → ~200 tall.
-    // Center Y at 0 by translating down half height, nose at z=-445 (closest to camera).
-    auto mesh = std::make_shared<Mesh>();
-    if (!mesh->fetchFrom("/home/dudujerry/models/bunny/bunny.obj")) {
+    auto spotTex = std::make_shared<BitmapTexture>(
+        "/home/dudujerry/mupsi/models/spot/spot_texture.png");
+    auto spotBsdf = std::make_shared<LambertianBsdf>(spotTex);
+    auto mesh = std::make_shared<Mesh>(spotBsdf);
+    if (!mesh->fetchFrom("/home/dudujerry/mupsi/models/spot/spot_triangulated_good.obj")) {
         std::cerr << "Failed to load mesh." << std::endl;
         return -1;
     }
     mesh->setTransform(Affine3f(
-        Translation3f(0.0f, -100.0f, -420.0f) * Scaling(1111.0f)
+        Translation3f(0.0f, -100.0f, -420.0f) * Scaling(110.0f)
     ).matrix());
     scene.addPrimitive(mesh);
 

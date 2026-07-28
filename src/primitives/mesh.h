@@ -17,6 +17,9 @@ public:
   Mesh() = default;
   ~Mesh() = default;
 
+  Mesh(std::shared_ptr<Bsdf> bsdf)
+      : bsdf_(bsdf) {}
+
   // Load OBJ file. Returns true on success.
   bool fetchFrom(const std::string& filename);
 
@@ -44,6 +47,7 @@ private:
   std::vector<Vector3f> normals_;       // per-vertex normals (from OBJ or computed)
   std::vector<Vector2f> texcoords_;     // per-vertex texture coordinates
   std::vector<Vector3i> faces_;         // (v0, v1, v2) indices into vertices_
+  std::vector<Vector3i> faceTexIndices_; // (t0, t1, t2) indices into texcoords_ (empty if none)
   std::vector<Vector3f> faceNormals_;   // precomputed per-face geometric normals
 
   // --- Acceleration ---
