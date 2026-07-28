@@ -50,7 +50,7 @@ int main()
 
     // scene.setMedium(gpmedium);
 
-    // g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus; // Set GP mode to SingleRealization
 
     auto spotTex = std::make_shared<BitmapTexture>(
         "/home/dudujerry/mupsi/models/spot/spot_texture.png");
@@ -63,15 +63,15 @@ int main()
     mesh->setTransform(Affine3f(
         Translation3f(0.0f, -100.0f, -420.0f) * Scaling(110.0f)
     ).matrix());
-    scene.addPrimitive(mesh);
+    // scene.addPrimitive(mesh);
 
     auto nullbsdf = std::make_shared<NullBsdf>();
-    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, -100.0f, -420.0f), 100.0f, nullbsdf);
+    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 120.0f, nullbsdf);
     sphere->setMedium(gpmedium, nullptr);
     scene.addPrimitive(sphere);
     
-    // auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0, 0.0f), 100.0f, nullbsdf);
-    // scene.addPrimitive(sphere);
+    auto sphere2 = std::make_shared<Sphere>(Vector3f(0.0f, 100.0, -200.0f), 50.0f, nullptr);
+    scene.addPrimitive(sphere2);
 
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(10.0f, 10.0f, 10.0f));
     auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr);
@@ -83,14 +83,14 @@ int main()
 
     scene.setCamera(std::make_shared<Camera>(
         Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f),
-        45.0f, 1024, 1024
+        45.0f, 512, 512
     ));
 
     PathTracer::settings().max_bounce = 8;
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene, 10);
+    renderer.startRender(scene, 3);
     renderer.afterRender();
 
     return 0;
