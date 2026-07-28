@@ -27,9 +27,11 @@ class PathTracer {
 
   static std::shared_ptr<PathTracerSettings> settings_; 
 
-public: 
-  PathTracer() = default; 
-  virtual ~PathTracer() = default; 
+public:
+  PathTracer() = default;
+  virtual ~PathTracer() = default;
+
+  static PathTracerSettings& settings() { return *settings_; }
 
   SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionTemporary& data, IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 
 

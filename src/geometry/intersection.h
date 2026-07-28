@@ -21,10 +21,10 @@ struct IntersectionTemporary {
     static_assert(sizeof(T) <= sizeof(data), "IntersectionTemporary::data is too small for type T");
     return reinterpret_cast<T*>(data);
   }
-  template<typename T> 
-  const T* as() const { 
+  template<typename T>
+  const T* as() const {
     static_assert(sizeof(T) <= sizeof(data), "IntersectionTemporary::data is too small for type T");
-    return reinterpret_cast<T*>(data);
+    return reinterpret_cast<const T*>(data);
   }
 }; 
 

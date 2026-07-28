@@ -11,9 +11,11 @@
 #include "rendering/renderer.h"
 #include "rendering/trace.h"
 #include "medium/gpmedium.h"
+#include "primitives/mesh.h"
+#include "bsdf/bsdf.h"
 
 using namespace mupsi;
-using namespace Eigen; 
+using namespace Eigen;
 
 int main()
 {
@@ -33,36 +35,57 @@ int main()
     #else
         printf("OpenMP is not enabled. \n");
     #endif
-        
+
     Scene scene;
 
-    scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f, nullptr));
+    // scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f, nullptr));
 
-    std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
-        std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f),
-        std::make_shared<SparseGPNoiseGenerator>(
-            std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
-            3
-        )
-    );
+    // std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
+    //     std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f),
+    //     std::make_shared<SparseGPNoiseGenerator>(
+    //         std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
+    //         3
+    //     )
+    // );
 
-    scene.setMedium(gpmedium);
+    // scene.setMedium(gpmedium);
 
-    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
+    // g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
 
-    auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(1.0f, 1.0f, 1.0f)); // White emission
-    auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr); 
-    light->setEmission(emission_texture); 
+    auto spotTex = std::make_shared<BitmapTexture>(
+        "/home/dudujerry/mupsi/models/spot/spot_texture.png");
+    auto spotBsdf = std::make_shared<LambertianBsdf>(spotTex);
+    auto mesh = std::make_shared<Mesh>(spotBsdf);
+    if (!mesh->fetchFrom("/home/dudujerry/mupsi/models/spot/spot_triangulated_good.obj")) {
+        std::cerr << "Failed to load mesh." << std::endl;
+        return -1;
+    }
+    mesh->setTransform(Affine3f(
+        Translation3f(0.0f, -100.0f, -420.0f) * Scaling(110.0f)
+    ).matrix());
+    scene.addPrimitive(mesh);
+
+    // auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, -100.0f, -420.0f), 100.0f, nullptr);
+    // scene.addPrimitive(sphere);
+
+    auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(10.0f, 10.0f, 10.0f));
+    auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr);
+    light->setEmission(emission_texture);
+    auto light2 = std::make_shared<Sphere>(Vector3f(0.0f,  200.0f, -50.0f), 100.0f, nullptr);
+    light2->setEmission(emission_texture);
     scene.addPrimitive(light);
-    
+    scene.addPrimitive(light2);
+
     scene.setCamera(std::make_shared<Camera>(
         Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f),
-        45.0f, 256, 256
+        45.0f, 1024, 1024
     ));
+
+    PathTracer::settings().max_bounce = 8;
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene, 1);
+    renderer.startRender(scene, 10);
     renderer.afterRender();
 
     return 0;
