@@ -40,13 +40,13 @@ int main()
 
     // scene.addPrimitive(std::make_shared<Sphere>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f, nullptr));
 
-    // std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
-    //     std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f),
-    //     std::make_shared<SparseGPNoiseGenerator>(
-    //         std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
-    //         3
-    //     )
-    // );
+    std::shared_ptr<GPMedium> gpmedium = std::make_shared<GPMedium>(
+        std::make_shared<SphereMeanFunction>(Vector3f(0.0f, 0.0f, -500.0f), 100.0f),
+        std::make_shared<SparseGPNoiseGenerator>(
+            std::make_shared<SparseSEKernel>(1.0f, 1.0f, Vector3f(1.0f, 1.0f, 1.0f)),
+            3
+        )
+    );
 
     // scene.setMedium(gpmedium);
 
@@ -65,13 +65,13 @@ int main()
     ).matrix());
     scene.addPrimitive(mesh);
 
-    // auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, -100.0f, -420.0f), 100.0f, nullptr);
-    // scene.addPrimitive(sphere);
-
-    
     auto nullbsdf = std::make_shared<NullBsdf>();
-    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0, 0.0f), 100.0f, nullbsdf);
+    auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, -100.0f, -420.0f), 100.0f, nullbsdf);
+    sphere->setMedium(gpmedium, nullptr);
     scene.addPrimitive(sphere);
+    
+    // auto sphere = std::make_shared<Sphere>(Vector3f(0.0f, 0.0, 0.0f), 100.0f, nullbsdf);
+    // scene.addPrimitive(sphere);
 
     auto emission_texture = std::make_shared<ConstantTexture>(Vector3f(10.0f, 10.0f, 10.0f));
     auto light = std::make_shared<Sphere>(Vector3f(200.0f, 0.0f, -300.0f), 100.0f, nullptr);
