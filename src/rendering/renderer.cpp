@@ -36,11 +36,11 @@ namespace mupsi
           PathTracer tracer;
           Vector3f e = tracer.trace(Vector2i(i, j), scene, 42, k);
           framebuffer_->accumulate(i, j, e);
+          ++done_;
         }
       }
 
       framebuffer_->incrementSampleCount();
-      done_ = (k + 1) * w * h;
 
       if (onSpp) onSpp(k + 1);
     }

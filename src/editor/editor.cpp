@@ -283,6 +283,10 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                 ImGui::Text("Full    | %dx%d | %d%%",
                             fullTargetW, fullTargetH, prog);
                 ImGui::ProgressBar(float(prog) / 100.0f, ImVec2(-1, 0));
+                if (ImGui::Button("Cancel", ImVec2(-1, 0))) {
+                    controller.cancel();
+                    launchPreview();
+                }
             }
 
             ImGui::Separator();
