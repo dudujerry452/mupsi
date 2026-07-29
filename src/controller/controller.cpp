@@ -180,13 +180,14 @@ void Controller::start() {
   });
 }
 
-void Controller::startProgressive(int targetSpp) {
+void Controller::startProgressive(int targetSpp, bool skipMedium) {
   if (!scene_) return;
   stop();
   shutdown_ = false;
   cancel_   = false;
   sppPassDone_.store(false);
   currentSpp_.store(0);
+  g_pathTracerSettings.skip_medium = skipMedium;
 
   renderThread_ = std::thread([this, targetSpp]() {
     renderer_ = std::make_shared<Renderer>();

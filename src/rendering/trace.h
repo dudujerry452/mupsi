@@ -12,12 +12,13 @@
 namespace mupsi {
 
 struct PathTracerSettings {
-  int spp = 1; 
-  int max_bounce = 3; 
-  int max_medium_bounce = 3; 
-  float eps = 1e-4; 
-  float nearteps = (1e-4) * 15;  // set because sphere's t approx to 0, lead to self-reflection
-  float rr = 0.5; 
+  int spp = 1;
+  int max_bounce = 3;
+  int max_medium_bounce = 3;
+  float eps = 1e-4;
+  float nearteps = (1e-4) * 15;
+  float rr = 0.5;
+  bool  skip_medium = false;
 };
 
 class Medium; 

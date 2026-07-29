@@ -69,7 +69,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         previewActive = isPreview;
         needRestart   = false;
         controller.ackSppPass();
-        controller.startProgressive(targetSpp);
+        controller.startProgressive(targetSpp, isPreview);
     };
 
     launchRender(previewSpp, true);

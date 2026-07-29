@@ -132,7 +132,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     hasHit = false; 
     bool exited = true;  
     // begin medium tracing
-    if(getMedium()) {
+    if(getMedium() && !g_pathTracerSettings.skip_medium) {
       Medium* medium = getMedium().get();
       GPMedium* gpmedium = dynamic_cast<GPMedium*>(medium);
 

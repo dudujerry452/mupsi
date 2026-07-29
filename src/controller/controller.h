@@ -44,7 +44,7 @@ void start();
 
 // Progressive — caller polls isSppPassDone() to know when a new frame arrived.
 // Swaps framebufferFront/Back internally so getFrameBuffer() is always stable.
-void startProgressive(int targetSpp);
+void startProgressive(int targetSpp, bool skipMedium = false);
 
 void cancel();
 void stop();

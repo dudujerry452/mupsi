@@ -3,8 +3,7 @@
 
 namespace mupsi {
 
-  std::shared_ptr<Bsdf> Medium::default_bsdf_ = std::make_shared<LambertianBsdf>();
-
+  // default_bsdf_ lives in bsdf.cpp to guarantee init after Bsdf::default_albedo_
 
   SurfaceScatterEvent Medium::makeSurfaceEventFromMedium(const MediumSample& sample, 
         IntersectionInfo& info, Ray& ray, Sampler& sampler, Sampler& medium_sampler) const {
