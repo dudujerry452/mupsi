@@ -148,6 +148,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
 
         // not sure is there should be backside
         ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
+        ray.setNearT(settings_->nearteps); 
         bounce_times ++; 
         exited = false; 
         hasHit = true;
@@ -175,6 +176,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
         else setMedium(data.primitive->getExtMedium());
 
         ray = Ray(info.p + backside * info.Ng * settings_->eps, event.wi);
+        ray.setNearT(settings_->nearteps); // set because sphere's t approx to 0, lead to self-reflection
         bounce_times ++; 
         hasHit = true;
       } else { // skydrome

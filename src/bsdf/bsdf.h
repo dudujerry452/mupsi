@@ -87,6 +87,20 @@ class NullBsdf: public Bsdf {
 
     void sample(SurfaceScatterEvent& event) const override;   
 }; 
+
+class SpecularBsdf: public Bsdf {
+  public: 
+    SpecularBsdf() = default; 
+    virtual ~SpecularBsdf() = default; 
+
+    Vector3f eval(SurfaceScatterEvent& event) const override; 
+    float pdf(SurfaceScatterEvent& event) const override;  
+
+    Vector3f weight(SurfaceScatterEvent& event) const override; 
+
+    void sample(SurfaceScatterEvent& event) const override;  
+}; 
+
 }
 
 #endif 

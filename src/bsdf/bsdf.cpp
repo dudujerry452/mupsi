@@ -52,4 +52,28 @@ namespace mupsi {
     event.weight = Vector3f(1.0f, 1.0f, 1.0f);
   }
 
+  Vector3f SpecularBsdf::eval(SurfaceScatterEvent& event) const {
+    Vector3f wr = 2 * (event.wi.dot(event.normal)) * event.normal - event.wi;
+    if(wr.dot(event.wo) > 0.999f) return Vector3f(1.0f, 1.0f, 1.0f);
+    else return Vector3f(0.0f, 0.0f, 0.0f);
+  }
+
+  float SpecularBsdf::pdf(SurfaceScatterEvent& event) const {
+    Vector3f wr = 2 * (event.wi.dot(event.normal)) * event.normal - event.wi;
+    if(wr.dot(event.wo) > 0.999f) return 1.0f;
+    else return 0.0f;
+  }
+
+  Vector3f SpecularBsdf::weight(SurfaceScatterEvent& event) const {
+    Vector3f wr = 2 * (event.wi.dot(event.normal)) * event.normal - event.wi;
+    if(wr.dot(event.wo) > 0.999f) return Vector3f(1.0f, 1.0f, 1.0f);
+    else return Vector3f(0.0f, 0.0f, 0.0f);
+  }
+
+  void SpecularBsdf::sample(SurfaceScatterEvent& event) const {
+    event.wi = 2 * (event.wo.dot(event.normal)) * event.normal - event.wo; // perfect reflection
+    event.pdf = 1.0f;
+    event.weight = Vector3f(1.0f, 1.0f, 1.0f);
+  }
+
 } 
