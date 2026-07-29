@@ -66,7 +66,8 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     float renderFps    = 0.0f;
 
     // Save feedback toast
-    float saveToastTimer = 0.0f;
+    float       saveToastTimer = 0.0f;
+    std::string saveToastPath;
 
     std::vector<float> texBuf;
 
@@ -150,20 +151,35 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         static bool ctrlSWasDown = false;
         bool ctrlSNow = ctrlDown && sKeyDown;
         if (ctrlSNow && !ctrlSWasDown) {
+            std::string fname;
             if (activeTab >= 0 && activeTab < (int)savedImages.size()) {
                 auto& img = savedImages[activeTab];
-                std::string fname = img.title + ".png";
+                fname = img.title + ".png";
                 for (auto& c : fname) if (c == ':' || c == ' ') c = '_';
                 Framebuffer fb(img.w, img.h);
                 for (int y = 0; y < img.h; y++)
                     for (int x = 0; x < img.w; x++) {
                         int i = (y * img.w + x) * 3;
-                        // SavedImage stores raw (un-tonemapped) values
                         fb(x, y).rgb = Vec3f(img.pixels[i+0], img.pixels[i+1], img.pixels[i+2]);
                     }
                 fb.save(fname);
-                saveToastTimer = 1.5f;
+            } else {
+                // Save current live preview or full-render in-progress
+                int w = isPreview ? previewW : fullTargetW;
+                int h = isPreview ? previewH : fullTargetH;
+                fname = "live_" + std::to_string(int(glfwGetTime())) + ".png";
+                std::vector<float> raw(w * h * 3);
+                controller.copyDisplayRawTo(raw.data(), w, h);
+                Framebuffer fb(w, h);
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++) {
+                        int i = (y * w + x) * 3;
+                        fb(x, y).rgb = Vec3f(raw[i+0], raw[i+1], raw[i+2]);
+                    }
+                fb.save(fname);
             }
+            saveToastTimer = 1.5f;
+            saveToastPath  = fname;
         }
         ctrlSWasDown = ctrlSNow;
 
@@ -274,13 +290,15 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                         }
                     fb.save(fname);
                     saveToastTimer = 1.5f;
+                    saveToastPath  = fname;
                 }
                 ImGui::Text("(or Ctrl+S)");
             }
         }
         if (saveToastTimer > 0.0f) {
             ImGui::Separator();
-            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "Saved!");
+            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "Saved %s",
+                              saveToastPath.c_str());
         }
         ImGui::End();
 
