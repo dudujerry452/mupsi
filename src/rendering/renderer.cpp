@@ -26,7 +26,7 @@ namespace mupsi
         Vector3f emmision = Vector3f::Zero();
         for(int k = 0; k < spp; k ++) {
           PathTracer tracer; 
-          emmision += tracer.trace(Vector2i(i, j), scene, 0, k);
+          emmision += tracer.trace(Vector2i(i, j), scene, 42, k);
         }
         emmision *= inv_k;
         framebuffer_->operator()(i, j) = Color({emmision});

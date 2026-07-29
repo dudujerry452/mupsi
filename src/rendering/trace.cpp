@@ -150,7 +150,8 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
         }
 
         if(gpmedium) {
-          gpmedium->sampleCondition(sample, medium_sampler);
+          ConstantSampler next_medium_sampler(g_gpSettings.gpMode == GPSettings::GPCorrelationMode::SingleRealization ? seed : make_seed(pixel.x(), pixel.y(), spp, seed, bounce_times + 1));
+          gpmedium->sampleCondition(sample, next_medium_sampler);
         }
 
         // not sure is there should be backside

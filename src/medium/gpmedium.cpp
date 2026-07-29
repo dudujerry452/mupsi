@@ -140,13 +140,13 @@ namespace mupsi {
       sample.conditioning->active = true;
       sample.conditioning->C = sample.p; 
 
-      Vector4f f = evalWithGradient(sample.p, seed);
+      Vector4f psi = evalPsi(sample.p, seed);
       /*
         $$\boxed{\tilde{u} = -\frac{\mu(\mathbf{C})}{A} -
         \psi_{\text{raw}}(\mathbf{C})}$$
       */
       sample.conditioning->u_tilde = -evalMu(sample.p) / noiseGenerator_->getKernel()->getSigma()
-              - f.x();
+              - psi.x();
       /*
         g = -\frac{L^2}{2} \cdot (\text{targetGrad} - \nabla\mu(C) -  
         \nabla\psi(C))
@@ -155,7 +155,7 @@ namespace mupsi {
         noiseGenerator_->getKernel()->oneOverSecondDerivative() * 
               (
                 sample.normal - 
-                muGradient(sample.p) - f.tail<3>()
+                muGradient(sample.p) - psi.tail<3>()
               ); 
       }
 
