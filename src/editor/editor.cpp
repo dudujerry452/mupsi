@@ -200,48 +200,74 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         ImGui::Begin("Settings", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
-        ImGui::Text("FPS: %.1f", viewer.framerate());
 
-        if (isPreview) {
-            ImGui::Text("Preview | %dx%d | SPP %d/%d",
-                        previewW, previewH, controller.getCurrentSpp(), previewSpp);
+        if (activeTab < 0) {
+            // --- Live preview settings ---
+            ImGui::Text("FPS: %.1f", viewer.framerate());
+            if (isPreview) {
+                ImGui::Text("Preview | %dx%d | SPP %d/%d",
+                            previewW, previewH, controller.getCurrentSpp(), previewSpp);
+            } else {
+                int prog = 0;
+                if (controller.getRenderer())
+                    prog = controller.getRenderer()->getProgress();
+                ImGui::Text("Full    | %dx%d | %d%%",
+                            fullTargetW, fullTargetH, prog);
+                ImGui::ProgressBar(float(prog) / 100.0f, ImVec2(-1, 0));
+            }
+
+            ImGui::Separator();
+
+            int bounce = g_pathTracerSettings.max_bounce;
+            if (ImGui::SliderInt("Max Bounce", &bounce, 1, 20)) {
+                g_pathTracerSettings.max_bounce = bounce;
+                if (isPreview) launchPreview();
+            }
+            int fs = fullSpp;
+            if (ImGui::SliderInt("Full SPP", &fs, 1, 256))
+                fullSpp = fs;
+            ImGui::InputInt("Target W", &targetW, 1, 100);
+            ImGui::InputInt("Target H", &targetH, 1, 100);
+
+            ImGui::Separator();
+            ImGui::Text("Camera: %.0f %.0f %.0f",
+                scene.cam().pos().x(), scene.cam().pos().y(), scene.cam().pos().z());
+            ImGui::Text("RMB=look  WASD=move  SPACE=render");
         } else {
-            int prog = 0;
-            if (controller.getRenderer())
-                prog = controller.getRenderer()->getProgress();
-            ImGui::Text("Full    | %dx%d | %d%%",
-                        fullTargetW, fullTargetH, prog);
-            ImGui::ProgressBar(float(prog) / 100.0f, ImVec2(-1, 0));
+            // --- Saved image tab ---
+            if (activeTab < (int)savedImages.size()) {
+                auto& si = savedImages[activeTab];
+                ImGui::Text("%s", si.title.c_str());
+                ImGui::Text("%dx%d | %d SPP", si.w, si.h, si.spp);
+                ImGui::Separator();
+                if (ImGui::Button("Save PNG", ImVec2(-1, 0))) {
+                    std::string fname = si.title + ".png";
+                    for (auto& c : fname) if (c == ':' || c == ' ') c = '_';
+                    Framebuffer fb(si.w, si.h);
+                    for (int y = 0; y < si.h; y++)
+                        for (int x = 0; x < si.w; x++) {
+                            int i = (y * si.w + x) * 3;
+                            fb(x, y).rgb = Vec3f(si.pixels[i+0], si.pixels[i+1], si.pixels[i+2]);
+                        }
+                    fb.save(fname);
+                    printf("Saved %s\n", fname.c_str());
+                }
+                ImGui::Text("(or Ctrl+S)");
+            }
         }
-
-        ImGui::Separator();
-
-        int bounce = g_pathTracerSettings.max_bounce;
-        if (ImGui::SliderInt("Max Bounce", &bounce, 1, 20)) {
-            g_pathTracerSettings.max_bounce = bounce;
-            if (isPreview) launchPreview();
-        }
-
-        int fs = fullSpp;
-        if (ImGui::SliderInt("Full SPP", &fs, 1, 256))
-            fullSpp = fs;
-
-        if (ImGui::SliderInt("Target W", &targetW, 64, 2048)) {}
-        if (ImGui::SliderInt("Target H", &targetH, 64, 2048)) {}
-
-        ImGui::Text("Camera: %.0f %.0f %.0f",
-            scene.cam().pos().x(), scene.cam().pos().y(), scene.cam().pos().z());
-        ImGui::Text("RMB=look  WASD=move  SPACE=render");
-        ImGui::Text("Ctrl+S = save tab");
         ImGui::End();
 
         // --- Viewport with tabs ---
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(viewW_, viewH_));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::Begin("Viewport", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+            ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGui::PopStyleVar(2);
 
         if (ImGui::BeginTabBar("Tabs")) {
             if (ImGui::BeginTabItem("Live")) {
@@ -255,7 +281,6 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                     ImGui::EndTabItem();
                 }
             }
-            // Cleanup closed tabs
             savedImages.erase(
                 std::remove_if(savedImages.begin(), savedImages.end(),
                     [](const SavedImage& s) { return !s.open; }),
@@ -265,14 +290,19 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGui::EndTabBar();
         }
 
-        // Scale and draw texture
-        float scale = std::min(viewW_ / float(texW), (viewH_ - 30.0f) / float(texH));
+        // Scale and draw texture in remaining content area
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+        float scale = std::min(avail.x / float(texW), avail.y / float(texH));
         float imgW  = float(texW) * scale;
         float imgH  = float(texH) * scale;
-        float padX  = (viewW_ - imgW) * 0.5f;
-        float padY  = (viewH_ - 30.0f - imgH) * 0.5f + 30.0f;
+        float padX  = (avail.x - imgW) * 0.5f;
+        float padY  = (avail.y - imgH) * 0.5f;
+        if (padX < 0) padX = 0; if (padY < 0) padY = 0;
+        if (imgW > avail.x) { imgW = avail.x; imgH = imgW * float(texH) / float(texW); }
 
-        ImGui::SetCursorPos(ImVec2(padX, padY));
+        ImGui::SetCursorPos(
+            ImVec2(ImGui::GetCursorPosX() + padX,
+                   ImGui::GetCursorPosY() + padY));
         ImGui::Image((ImTextureID)(intptr_t)viewer.texID(), ImVec2(imgW, imgH),
                      ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
