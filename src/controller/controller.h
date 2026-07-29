@@ -60,6 +60,9 @@ int  getCurrentSpp() const { return currentSpp_.load(); }
 // Thread-safe: locks displayMtx_, copies tonemapped RGB to flat array [w*h*3].
 void copyDisplayTo(float* dst, int w, int h) const;
 
+// Raw (un-tonemapped) copy for saving results.
+void copyDisplayRawTo(float* dst, int w, int h) const;
+
 // Save current display framebuffer to file.
 void saveDisplay(const std::string& path) const;
 

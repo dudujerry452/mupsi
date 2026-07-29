@@ -25,6 +25,7 @@ struct SavedImage {
     int         spp = 0;
     std::vector<float> pixels; // tonemapped RGB, flat [w*h*3]
     int w = 0, h = 0;
+    bool open = true; // for ImGui tab close button
 };
 
 // =========================================================================
@@ -54,15 +55,19 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     float lastFrameTime = float(glfwGetTime());
 
     std::vector<SavedImage> savedImages;
-    int activeTab = -1; // -1 = live preview, >=0 = saved image index
+    int activeTab = -1;
 
-    std::vector<float> texBuf; // for copyDisplayTo
+    // Snapshot of full-render parameters (immutable while rendering)
+    int  fullTargetSpp = fullSpp;
+    int  fullTargetW   = targetW;
+    int  fullTargetH   = targetH;
+
+    std::vector<float> texBuf;
 
     auto launchPreview = [&]() {
         isPreview   = true;
         needRestart = false;
         controller.ackSppPass();
-        // Use preview camera resolution
         auto prevCam = std::make_shared<Camera>(
             scene.cam().pos(), scene.cam().dir(), Vector3f(0,1,0),
             scene.cam().fov(), previewW, previewH);
@@ -71,14 +76,17 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     };
 
     auto launchFull = [&]() {
-        isPreview   = false;
-        needRestart = false;
+        isPreview     = false;
+        needRestart   = false;
+        fullTargetSpp = fullSpp;        // snapshot mutable params
+        fullTargetW   = targetW;
+        fullTargetH   = targetH;
         controller.ackSppPass();
         auto fullCam = std::make_shared<Camera>(
             scene.cam().pos(), scene.cam().dir(), Vector3f(0,1,0),
-            scene.cam().fov(), targetW, targetH);
+            scene.cam().fov(), fullTargetW, fullTargetH);
         scene.setCamera(fullCam);
-        controller.startProgressive(fullSpp, false);
+        controller.startProgressive(fullTargetSpp, false);
     };
 
     launchPreview();
@@ -94,8 +102,8 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
 
         // --- Camera ---
         camCtrl.apply(viewer.window(), dt);
-        int cw = isPreview ? previewW : targetW;
-        int ch = isPreview ? previewH : targetH;
+        int cw = isPreview ? previewW : fullTargetW;
+        int ch = isPreview ? previewH : fullTargetH;
         auto newCam = camCtrl.makeCamera(scene.cam(), dt, cw, ch);
         bool camMovedNow = ((newCam->pos() - scene.cam().pos()).squaredNorm() > 0.01f ||
                             (newCam->dir() - scene.cam().dir()).squaredNorm() > 0.0001f);
@@ -117,37 +125,44 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         spaceWasDown = spaceDown;
 
         // --- Ctrl+S → save active tab ---
-        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
+        bool ctrlDown = glfwGetKey(viewer.window(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS
+                     || glfwGetKey(viewer.window(), GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS;
+        bool sKeyDown = glfwGetKey(viewer.window(), GLFW_KEY_S) == GLFW_PRESS;
+        static bool ctrlSWasDown = false;
+        bool ctrlSNow = ctrlDown && sKeyDown;
+        if (ctrlSNow && !ctrlSWasDown) {
             if (activeTab >= 0 && activeTab < (int)savedImages.size()) {
                 auto& img = savedImages[activeTab];
-                // Save as PNG
                 std::string fname = img.title + ".png";
                 for (auto& c : fname) if (c == ':' || c == ' ') c = '_';
-                // Reconstruct Framebuffer from saved pixels and use its PNG saver
                 Framebuffer fb(img.w, img.h);
                 for (int y = 0; y < img.h; y++)
                     for (int x = 0; x < img.w; x++) {
                         int i = (y * img.w + x) * 3;
+                        // SavedImage stores raw (un-tonemapped) values
                         fb(x, y).rgb = Vec3f(img.pixels[i+0], img.pixels[i+1], img.pixels[i+2]);
                     }
                 fb.save(fname);
-                std::cout << "Saved " << fname << std::endl;
+                printf("Saved %s\n", fname.c_str());
             }
         }
+        ctrlSWasDown = ctrlSNow;
 
         // --- When full render completes, capture result to tab ---
         if (!isPreview && controller.isSppPassDone() &&
-            controller.getCurrentSpp() >= fullSpp) {
+            controller.getCurrentSpp() >= fullTargetSpp) {
+            printf("CAPTURE: currentSpp=%d fullTargetSpp=%d w=%d h=%d\n",
+                controller.getCurrentSpp(), fullTargetSpp, fullTargetW, fullTargetH);
             std::time_t t = std::time(nullptr);
             char buf[32];
             std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
 
             SavedImage img;
             img.title = buf;
-            img.spp   = fullSpp;
-            img.w = targetW; img.h = targetH;
-            img.pixels.resize(targetW * targetH * 3);
-            controller.copyDisplayTo(img.pixels.data(), targetW, targetH);
+            img.spp   = fullTargetSpp;
+            img.w = fullTargetW; img.h = fullTargetH;
+            img.pixels.resize(fullTargetW * fullTargetH * 3);
+            controller.copyDisplayRawTo(img.pixels.data(), fullTargetW, fullTargetH);
             savedImages.push_back(std::move(img));
             activeTab = (int)savedImages.size() - 1;
 
@@ -187,7 +202,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             if (controller.getRenderer())
                 prog = controller.getRenderer()->getProgress();
             ImGui::Text("Full    | %dx%d | %d%%",
-                        targetW, targetH, prog);
+                        fullTargetW, fullTargetH, prog);
             ImGui::ProgressBar(float(prog) / 100.0f, ImVec2(-1, 0));
         }
 
@@ -221,22 +236,23 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         if (ImGui::BeginTabBar("Tabs")) {
-            if (ImGui::BeginTabItem("Live")) {
+            if (ImGui::TabItemButton("Live")) {
                 activeTab = -1;
-                ImGui::EndTabItem();
             }
             for (int i = 0; i < (int)savedImages.size(); i++) {
-                bool open = (activeTab == i);
-                if (ImGui::BeginTabItem(savedImages[i].title.c_str(), &open)) {
+                auto& si = savedImages[i];
+                if (ImGui::BeginTabItem(si.title.c_str(), &si.open)) {
                     activeTab = i;
                     ImGui::EndTabItem();
                 }
-                if (!open) {
-                    savedImages.erase(savedImages.begin() + i);
-                    if (activeTab >= (int)savedImages.size()) activeTab = (int)savedImages.size() - 1;
-                    break;
-                }
             }
+            // Cleanup closed tabs
+            savedImages.erase(
+                std::remove_if(savedImages.begin(), savedImages.end(),
+                    [](const SavedImage& s) { return !s.open; }),
+                savedImages.end());
+            if (activeTab >= (int)savedImages.size()) activeTab = (int)savedImages.size() - 1;
+            if (savedImages.empty()) activeTab = -1;
             ImGui::EndTabBar();
         }
 

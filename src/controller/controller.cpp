@@ -235,6 +235,19 @@ void Controller::saveDisplay(const std::string& path) const {
   if (framebufferFront_) framebufferFront_->save(path);
 }
 
+void Controller::copyDisplayRawTo(float* dst, int w, int h) const {
+  std::lock_guard<std::mutex> lock(displayMtx_);
+  if (!framebufferFront_) return;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      const Vec3f& v = (*framebufferFront_)(x, y).rgb;
+      int i = (y * w + x) * 3;
+      dst[i + 0] = v.x();
+      dst[i + 1] = v.y();
+      dst[i + 2] = v.z();
+    }
+}
+
 void Controller::copyDisplayTo(float* dst, int w, int h) const {
   std::lock_guard<std::mutex> lock(displayMtx_);
   if (!framebufferFront_) return;
