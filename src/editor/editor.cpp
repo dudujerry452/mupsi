@@ -60,6 +60,14 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     int  fullTargetW   = targetW;
     int  fullTargetH   = targetH;
 
+    // Render FPS (SPP passes / sec)
+    int   sppPassCount = 0;
+    float sppTimer     = 0.0f;
+    float renderFps    = 0.0f;
+
+    // Save feedback toast
+    float saveToastTimer = 0.0f;
+
     std::vector<float> texBuf;
 
     auto launchPreview = [&]() {
@@ -97,6 +105,19 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         float dt  = now - lastFrameTime;
         lastFrameTime = now;
         dt = std::clamp(dt, 0.0f, 1.0f / 30.0f);
+
+        // Render FPS: count SPP pass completions (edge-triggered, no consume)
+        static bool wasSppDone = false;
+        bool isSppDone = controller.isSppPassDone();
+        if (isSppDone && !wasSppDone) sppPassCount++;
+        wasSppDone = isSppDone;
+        sppTimer += dt;
+        if (sppTimer >= 0.5f) {
+            renderFps = (sppTimer > 0.0f) ? sppPassCount / sppTimer : 0.0f;
+            sppPassCount = 0;
+            sppTimer = 0.0f;
+        }
+        if (saveToastTimer > 0.0f) saveToastTimer -= dt;
 
         // --- Camera ---
         camCtrl.apply(viewer.window(), dt);
@@ -141,7 +162,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                         fb(x, y).rgb = Vec3f(img.pixels[i+0], img.pixels[i+1], img.pixels[i+2]);
                     }
                 fb.save(fname);
-                printf("Saved %s\n", fname.c_str());
+                saveToastTimer = 1.5f;
             }
         }
         ctrlSWasDown = ctrlSNow;
@@ -205,7 +226,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
 
         if (activeTab < 0) {
             // --- Live preview settings ---
-            ImGui::Text("FPS: %.1f", viewer.framerate());
+            ImGui::Text("Render FPS: %.0f", renderFps);
             if (isPreview) {
                 ImGui::Text("Preview | %dx%d | SPP %d/%d",
                             previewW, previewH, controller.getCurrentSpp(), previewSpp);
@@ -252,10 +273,14 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                             fb(x, y).rgb = Vec3f(si.pixels[i+0], si.pixels[i+1], si.pixels[i+2]);
                         }
                     fb.save(fname);
-                    printf("Saved %s\n", fname.c_str());
+                    saveToastTimer = 1.5f;
                 }
                 ImGui::Text("(or Ctrl+S)");
             }
+        }
+        if (saveToastTimer > 0.0f) {
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "Saved!");
         }
         ImGui::End();
 
