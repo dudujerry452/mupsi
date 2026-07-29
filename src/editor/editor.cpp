@@ -170,18 +170,21 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
 
     DisplayState       dispState;
 
-    bool  previewActive = false;
+    bool  previewActive = true;
     int   previewSpp    = 4;
     int   fullSpp       = controller.getSpp();
     float lastFrameTime = float(glfwGetTime());
+    bool  needRestart   = false;
+    std::atomic<bool> sppPassDone{false};
 
     auto launchRender = [&](int targetSpp, bool isPreview) {
         previewActive = isPreview;
-        // Controller manages the render thread + double-buffering.
-        // onFrame deep-copies the stable averaged pixels to dispState.
+        needRestart   = false;
+        sppPassDone.store(false);
         controller.startProgressive(targetSpp,
             [&](const Framebuffer& fb, int s) {
                 dispState.swapFrom(fb, s);
+                sppPassDone.store(true);
             });
     };
 
@@ -202,11 +205,15 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         // --- Camera update ---
         camCtrl.apply(window, dt);
         auto newCam = camCtrl.makeCamera(scene.cam(), dt);
-        bool camChanged = ((newCam->pos() - scene.cam().pos()).squaredNorm() > 0.01f ||
-                           (newCam->dir() - scene.cam().dir()).squaredNorm() > 0.0001f);
-
-        if (camChanged) {
+        bool camMovedNow = ((newCam->pos() - scene.cam().pos()).squaredNorm() > 0.01f ||
+                            (newCam->dir() - scene.cam().dir()).squaredNorm() > 0.0001f);
+        if (camMovedNow) {
             scene.setCamera(newCam);
+            needRestart = true;
+        }
+
+        // Restart only if camera moved AND current render has produced at least one stable frame
+        if (needRestart && sppPassDone.load()) {
             launchRender(previewSpp, true);
         }
 
