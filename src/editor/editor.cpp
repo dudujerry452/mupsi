@@ -174,7 +174,15 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         if (activeTab >= 0 && activeTab < (int)savedImages.size()) {
             auto& img = savedImages[activeTab];
             texW = img.w; texH = img.h;
-            viewer.uploadTexture(img.pixels.data(), texW, texH);
+            texBuf.resize(img.w * img.h * 3);
+            // SavedImage stores raw HDR — tonemap for display
+            for (int i = 0; i < img.w * img.h * 3; i += 3) {
+                float r = img.pixels[i+0], g = img.pixels[i+1], b = img.pixels[i+2];
+                texBuf[i+0] = r / (1.0f + r);
+                texBuf[i+1] = g / (1.0f + g);
+                texBuf[i+2] = b / (1.0f + b);
+            }
+            viewer.uploadTexture(texBuf.data(), texW, texH);
         } else {
             texBuf.resize(previewW * previewH * 3);
             if (isPreview) {
@@ -236,8 +244,9 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         if (ImGui::BeginTabBar("Tabs")) {
-            if (ImGui::TabItemButton("Live")) {
+            if (ImGui::BeginTabItem("Live")) {
                 activeTab = -1;
+                ImGui::EndTabItem();
             }
             for (int i = 0; i < (int)savedImages.size(); i++) {
                 auto& si = savedImages[i];
