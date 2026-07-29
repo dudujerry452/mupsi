@@ -8,3 +8,9 @@ doc/
 *.jpg
 compile_commands.json
 config.json
+*.json
+models
+*.obj
+*.hdr
+*.tgz
+*.tar.gz

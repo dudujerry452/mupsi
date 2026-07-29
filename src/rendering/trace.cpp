@@ -16,8 +16,7 @@ using namespace Eigen;
 
 namespace mupsi {
 
-
-std::shared_ptr<PathTracerSettings> PathTracer::settings_ = std::make_shared<PathTracerSettings>();
+PathTracerSettings g_pathTracerSettings; 
 
 SurfaceScatterEvent PathTracer::makeSurfaceScatterEvent(IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler) {
   SurfaceScatterEvent event;
@@ -39,8 +38,8 @@ bool PathTracer::handleSurface(SurfaceScatterEvent& event, Vector3f& throughput,
     // light sample
     LightSample light_sample;
     if(scene.chooseLight(info.p, sampler, light_sample)) {
-      Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
-      float bias_dist = light_sample.dist - settings_->eps * std::abs(light_sample.d.dot(event.normal));
+      Ray ray(info.p + event.normal * g_pathTracerSettings.eps, light_sample.d);
+      float bias_dist = light_sample.dist - g_pathTracerSettings.eps * std::abs(light_sample.d.dot(event.normal));
       ray.setFarT(bias_dist * 0.99f);
       if(!scene.occluded(ray)) {
         // Evaluate BSDF at light direction to get albedo for direct lighting.
@@ -85,8 +84,8 @@ bool PathTracer::handleVolume(SurfaceScatterEvent& event,
     // NEE (next event estimation) — same logic as handleSurface
     LightSample light_sample;
     if(scene.chooseLight(info.p, sampler, light_sample)) {
-      Ray shadowRay(info.p + event.normal * settings_->eps, light_sample.d);
-      float bias_dist = light_sample.dist - settings_->eps * std::abs(light_sample.d.dot(event.normal));
+      Ray shadowRay(info.p + event.normal * g_pathTracerSettings.eps, light_sample.d);
+      float bias_dist = light_sample.dist - g_pathTracerSettings.eps * std::abs(light_sample.d.dot(event.normal));
       shadowRay.setFarT(bias_dist * 0.99f);
       auto trans = medium.transmittance(shadowRay, sample, medium_sampler);
 
@@ -155,8 +154,8 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
         }
 
         // not sure is there should be backside
-        ray = Ray(info.p + info.Ng * settings_->eps, event.wi);
-        ray.setNearT(settings_->nearteps); 
+        ray = Ray(info.p + info.Ng * g_pathTracerSettings.eps, event.wi);
+        ray.setNearT(g_pathTracerSettings.nearteps); 
         bounce_times ++; 
         exited = false; 
         hasHit = true;
@@ -183,8 +182,8 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
           setMedium(data.primitive->getIntMedium());
         else setMedium(data.primitive->getExtMedium());
 
-        ray = Ray(info.p + backside * info.Ng * settings_->eps, event.wi);
-        ray.setNearT(settings_->nearteps); // set because sphere's t approx to 0, lead to self-reflection
+        ray = Ray(info.p + backside * info.Ng * g_pathTracerSettings.eps, event.wi);
+        ray.setNearT(g_pathTracerSettings.nearteps); // set because sphere's t approx to 0, lead to self-reflection
         bounce_times ++; 
         hasHit = true;
       } else { // skydrome
@@ -201,7 +200,7 @@ Vector3f PathTracer::trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp)
     }
 
 
-  }while(hasHit && bounce_times < settings_->max_bounce); 
+  }while(hasHit && bounce_times < g_pathTracerSettings.max_bounce); 
 
   return emission;
 }

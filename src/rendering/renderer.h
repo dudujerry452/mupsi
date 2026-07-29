@@ -3,21 +3,38 @@
 #include "framebuffer.h"
 #include "camera.h"
 #include "geometry/scene.h"
+#include <atomic>
 
 namespace mupsi {
 
 class Renderer {
     std::shared_ptr<Framebuffer> framebuffer_;
 
-    public: 
+    std::atomic<int> done_{0};
 
-    Renderer() = default; 
+    public:
+
+    Renderer() = default;
     virtual ~Renderer() = default;
 
-    void prepareRender(Scene& scene);
-    void startRender(Scene& scene, int spp); 
-    void afterRender(); 
+    void setCancelFlag(std::atomic<bool>* flag) { cancel_ = flag; }
 
-}; 
+    void prepareRender(Scene& scene);
+    void startRender(Scene& scene, int spp);
+    void afterRender();
+
+    std::shared_ptr<Framebuffer> getFramebuffer() const { return framebuffer_; }
+
+    int getProgress() const {
+        if (!framebuffer_) return 0;
+        int w = framebuffer_->width(), h = framebuffer_->height();
+        int total = w * h;
+        int done = done_.load();
+        if (total == 0) return 0; return (100 * done / total);
+    }
+
+private:
+    std::atomic<bool>* cancel_ = nullptr;
+};
 
 } // namespace mupsi

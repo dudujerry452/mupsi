@@ -23,17 +23,15 @@ struct PathTracerSettings {
 class Medium; 
 class MediumSample;
 
+extern PathTracerSettings g_pathTracerSettings;
 
 class PathTracer {
 
-  static std::shared_ptr<PathTracerSettings> settings_; 
   std::shared_ptr<Medium> medium_;
 
 public:
   PathTracer() = default;
   virtual ~PathTracer() = default;
-
-  static PathTracerSettings& settings() { return *settings_; }
 
   SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 
 
