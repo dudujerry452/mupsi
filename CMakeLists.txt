@@ -25,7 +25,7 @@ target_include_directories(mupsi_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(mupsi_core PRIVATE
+target_link_libraries(mupsi_core PUBLIC
     ${OpenCV_LIBS}
     OpenMP::OpenMP_CXX
     nlohmann_json::nlohmann_json
@@ -46,7 +46,7 @@ endif()
 # ——— headless CLI ———
 add_executable(mupsi src/main.cpp)
 target_include_directories(mupsi PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(mupsi PRIVATE mupsi_core Eigen3::Eigen)
+target_link_libraries(mupsi PRIVATE mupsi_core)
 target_compile_options(mupsi PRIVATE -Wall -Wextra -pedantic -O2 -g)
 
 # ——— editor (optional) ———
@@ -67,10 +67,6 @@ if(OpenGL_FOUND AND glfw3_FOUND)
         mupsi_core
         glfw
         ${OPENGL_LIBRARIES}
-        ${OpenCV_LIBS}
-        OpenMP::OpenMP_CXX
-        nlohmann_json::nlohmann_json
-        Eigen3::Eigen
     )
     target_compile_options(mupsi-editor PRIVATE -Wall -Wextra -pedantic -O2 -g)
     target_compile_definitions(mupsi-editor PRIVATE IMGUI_IMPL_OPENGL_LOADER_GLAD)

@@ -4,7 +4,6 @@
 #include <chrono>
 
 #include "controller/controller.h"
-#include "rendering/framebuffer.h"
 #include "rendering/renderer.h"
 
 using namespace mupsi;
@@ -35,14 +34,13 @@ int main(int argc, char* argv[])
 
     ctrl.start();
 
-    // Wait for frame
-    while (!ctrl.isFrameReady()) {
+    while (!ctrl.isSppPassDone()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        std::cerr << "progress: " << ctrl.getRenderer()->getProgress() << "%" << std::endl; 
+        std::cerr << "progress: " << ctrl.getRenderer()->getProgress() << "%" << std::endl;
     }
 
-    std::cout << "Render complete. Saving " << ctrl.outputPath() << "..." << std::endl;
-    ctrl.getFrameBuffer().save(ctrl.outputPath());
+    std::cout << "Render complete. Saving " << outputPath << "..." << std::endl;
+    ctrl.saveDisplay(outputPath);
 
     ctrl.stop();
     return 0;

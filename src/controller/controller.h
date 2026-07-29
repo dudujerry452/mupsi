@@ -5,9 +5,7 @@
 #include <atomic>
 #include <thread>
 #include <string>
-#include <functional>
-
-
+#include <mutex>
 
 namespace mupsi {
 
@@ -16,18 +14,20 @@ class Renderer;
 class Primitive;
 class Framebuffer;
 
-
 class Controller {
 
 std::shared_ptr<Scene> scene_;
 std::shared_ptr<Renderer> renderer_;
 
 std::shared_ptr<Framebuffer> framebufferFront_, framebufferBack_;
-std::atomic<bool> frameReady_{false};
+mutable std::mutex displayMtx_;
 
 std::thread renderThread_;
 std::atomic<bool> cancel_{false};
 std::atomic<bool> shutdown_{false};
+
+std::atomic<bool> sppPassDone_{false};
+std::atomic<int>  currentSpp_{0};
 
 int  spp_ = 1;
 std::string outputPath_ = "test.png";
@@ -39,24 +39,34 @@ Controller() = default;
 
 bool load(std::string config_path);
 
-// Full render (all spp at once, save on completion).
+// Full render (all spp, blocks render thread until done, then swaps).
 void start();
-// Progressive render — fires onFrame callback each SPP pass with the Renderer's framebuffer.
-// Caller is responsible for copying data out of the framebuffer inside onFrame
-// (the framebuffer is still being written to between callbacks).
-void startProgressive(int targetSpp,
-                       std::function<void(const Framebuffer& fb, int currentSpp)> onFrame);
+
+// Progressive — caller polls isSppPassDone() to know when a new frame arrived.
+// Swaps framebufferFront/Back internally so getFrameBuffer() is always stable.
+void startProgressive(int targetSpp);
+
 void cancel();
 void stop();
 
-bool isFrameReady() const;
-const Framebuffer& getFrameBuffer() const;
-void consumeFrameBuffer();
+// True after each SPP pass — caller reads, restarts, etc.
+// Controller never resets this; caller should:
+//   bool done = ctrl.isSppPassDone(); Ctrl.ackSppPass();
+bool isSppPassDone() const { return sppPassDone_.load(); }
+void ackSppPass() { sppPassDone_.store(false); }
+
+int  getCurrentSpp() const { return currentSpp_.load(); }
+
+// Thread-safe: locks displayMtx_, copies tonemapped RGB to flat array [w*h*3].
+void copyDisplayTo(float* dst, int w, int h) const;
+
+// Save current display framebuffer to file.
+void saveDisplay(const std::string& path) const;
 
 std::shared_ptr<Scene> getScene() const {return scene_; }
 std::shared_ptr<Renderer> getRenderer() const {return renderer_; }
 
-int getSpp() const { return spp_; }
+int  getSpp() const { return spp_; }
 void setOutputPath(const std::string& path) { outputPath_ = path; }
 const std::string& outputPath() const { return outputPath_; }
 

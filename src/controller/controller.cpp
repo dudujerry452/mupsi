@@ -163,7 +163,7 @@ void Controller::start() {
     return;
   }
 
-  stop(); // join previous thread if any
+  stop();
 
   shutdown_ = false;
   cancel_   = false;
@@ -175,30 +175,45 @@ void Controller::start() {
     renderer_->startRender(*scene_, spp_);
     if (!cancel_.load()) {
       framebufferFront_ = renderer_->getFramebuffer();
-      frameReady_.store(true);
+      sppPassDone_.store(true);
     }
   });
 }
 
-void Controller::startProgressive(int targetSpp,
-    std::function<void(const Framebuffer&, int)> onFrame) {
+void Controller::startProgressive(int targetSpp) {
   if (!scene_) return;
   stop();
   shutdown_ = false;
   cancel_   = false;
+  sppPassDone_.store(false);
+  currentSpp_.store(0);
 
-  renderThread_ = std::thread([this, targetSpp, onFrame = std::move(onFrame)]() {
+  renderThread_ = std::thread([this, targetSpp]() {
     renderer_ = std::make_shared<Renderer>();
     renderer_->setCancelFlag(&cancel_);
     renderer_->prepareRender(*scene_);
+
+    // Ensure back buffer exists
+    int w = scene_->cam().width(), h = scene_->cam().height();
+    framebufferBack_ = std::make_shared<Framebuffer>(w, h);
+    framebufferFront_ = std::make_shared<Framebuffer>(w, h);
+
     renderer_->startRenderProgressive(*scene_, targetSpp,
         [&](int s) {
-          if (!cancel_.load()) onFrame(*renderer_->getFramebuffer(), s);
+          if (cancel_.load()) return;
+          // Deep copy renderer's averaged pixels → back buffer
+          const Framebuffer& rfb = *renderer_->getFramebuffer();
+          for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+              (*framebufferBack_)(x, y).rgb = rfb(x, y).rgb;
+          // Swap front/back
+          {
+            std::lock_guard<std::mutex> lock(displayMtx_);
+            std::swap(framebufferFront_, framebufferBack_);
+          }
+          currentSpp_.store(s);
+          sppPassDone_.store(true);
         });
-    if (!cancel_.load()) {
-      framebufferFront_ = renderer_->getFramebuffer();
-      frameReady_.store(true);
-    }
   });
 }
 
@@ -213,16 +228,22 @@ void Controller::stop() {
   shutdown_ = false;
 }
 
-bool Controller::isFrameReady() const {
-  return frameReady_.load();
+void Controller::saveDisplay(const std::string& path) const {
+  std::lock_guard<std::mutex> lock(displayMtx_);
+  if (framebufferFront_) framebufferFront_->save(path);
 }
 
-const Framebuffer& Controller::getFrameBuffer() const {
-  return *framebufferFront_;
-}
-
-void Controller::consumeFrameBuffer() {
-  frameReady_.store(false);
+void Controller::copyDisplayTo(float* dst, int w, int h) const {
+  std::lock_guard<std::mutex> lock(displayMtx_);
+  if (!framebufferFront_) return;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      Vec3f v = framebufferFront_->tonemapped(x, y);
+      int i = (y * w + x) * 3;
+      dst[i + 0] = v.x();
+      dst[i + 1] = v.y();
+      dst[i + 2] = v.z();
+    }
 }
 
 } // namespace mupsi
