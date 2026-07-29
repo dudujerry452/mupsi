@@ -31,15 +31,14 @@ class Renderer {
     std::shared_ptr<Framebuffer> getFramebuffer() const { return framebuffer_; }
 
     int getProgress() const {
-        if (!framebuffer_) return 0;
+        if (!framebuffer_ || targetSpp_ == 0) return 0;
         int w = framebuffer_->width(), h = framebuffer_->height();
-        int total = w * h;
-        int done = done_.load();
-        if (total == 0) return 0; return (100 * done / total);
+        return (100 * done_.load()) / (w * h * targetSpp_);
     }
 
 private:
     std::atomic<bool>* cancel_ = nullptr;
+    int targetSpp_ = 0;
 };
 
 } // namespace mupsi

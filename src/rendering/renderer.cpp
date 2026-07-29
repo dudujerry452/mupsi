@@ -23,6 +23,7 @@ namespace mupsi
                                         std::function<void(int)> onSpp) {
     int w = scene.cam().width(), h = scene.cam().height();
     done_ = 0;
+    targetSpp_ = targetSpp;
 
     for (int k = 0; k < targetSpp; k++) {
       if (cancel_ && cancel_->load()) return false;

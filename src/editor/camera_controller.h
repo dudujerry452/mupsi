@@ -22,8 +22,9 @@ struct CameraController {
     // Read input from window, update yaw/pitch/move state.
     void apply(GLFWwindow* window, float dt);
 
-    // Build a new camera from current yaw/pitch/move relative to `current`.
-    std::shared_ptr<Camera> makeCamera(const Camera& current, float dt) const;
+    // Build a new camera with overridable resolution.
+    std::shared_ptr<Camera> makeCamera(const Camera& current, float dt,
+                                       int overrideW = -1, int overrideH = -1) const;
 
     // Initialize yaw/pitch from existing camera direction.
     void syncFromCamera(const Camera& cam);

@@ -36,7 +36,8 @@ void CameraController::apply(GLFWwindow* window, float dt) {
              || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
 }
 
-std::shared_ptr<Camera> CameraController::makeCamera(const Camera& current, float dt) const {
+std::shared_ptr<Camera> CameraController::makeCamera(const Camera& current, float dt,
+                                                      int overrideW, int overrideH) const {
     Vector3f dir(std::cos(pitch) * std::sin(yaw),
                  std::sin(pitch),
                 -std::cos(pitch) * std::cos(yaw));
@@ -47,9 +48,12 @@ std::shared_ptr<Camera> CameraController::makeCamera(const Camera& current, floa
     float speed = boosting_ ? fastSpeed : baseSpeed;
     Vector3f dpos = (dir * move_[2] + right * move_[0] + up * move_[1]) * speed * dt;
 
+    int w = (overrideW >= 0) ? overrideW : current.width();
+    int h = (overrideH >= 0) ? overrideH : current.height();
+
     return std::make_shared<Camera>(
         current.pos() + dpos, dir, Vector3f(0.0f, 1.0f, 0.0f),
-        current.fov(), current.width(), current.height()
+        current.fov(), w, h
     );
 }
 
