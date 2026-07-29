@@ -25,7 +25,8 @@ namespace mupsi {
 struct CameraController {
     float yaw   = 0.0f;
     float pitch = 0.0f;
-    float moveSpeed = 50.0f;
+    float baseSpeed = 50.0f;
+    float fastSpeed = 200.0f;
     float lookSpeed = 0.002f;
 
     // Default direction: looking at -Z
@@ -54,6 +55,8 @@ struct CameraController {
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) move_.x() += 1.0f;
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) move_.y() += 1.0f;
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) move_.y() -= 1.0f;
+        boosting_ = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+                 || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
     }
 
     // Compute new camera from current yaw/pitch/move
@@ -65,7 +68,8 @@ struct CameraController {
         Vector3f right = dir.cross(Vector3f(0.0f, 1.0f, 0.0f)).normalized();
         Vector3f up    = right.cross(dir).normalized();
 
-        Vector3f dpos = (dir * move_[2] + right * move_[0] + up * move_[1]) * moveSpeed * dt;
+        float speed = boosting_ ? fastSpeed : baseSpeed;
+        Vector3f dpos = (dir * move_[2] + right * move_[0] + up * move_[1]) * speed * dt;
 
         return std::make_shared<Camera>(
             current.pos() + dpos, dir, Vector3f(0.0f, 1.0f, 0.0f),
@@ -82,6 +86,7 @@ struct CameraController {
 
 private:
     Vector3f move_{0.0f, 0.0f, 0.0f};
+    bool boosting_ = false;
 };
 
 // =========================================================================
@@ -121,7 +126,8 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
 
     int fbW = scene.cam().width();
     int fbH = scene.cam().height();
-    GLFWwindow* window = glfwCreateWindow(fbW * 2, fbH + 60,
+    int winW = 1280, winH = 800;
+    GLFWwindow* window = glfwCreateWindow(winW, winH,
         windowTitle.c_str(), nullptr, nullptr);
     if (!window) { glfwTerminate(); return -1; }
     glfwMakeContextCurrent(window);
@@ -190,12 +196,12 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         float now = float(glfwGetTime());
         float dt  = now - lastFrameTime;
         lastFrameTime = now;
-        if (dt <= 0.0f) dt = 1.0f / 60.0f;
+        dt = std::clamp(dt, 0.0f, 1.0f / 30.0f); // cap to avoid jump on first frame
 
         // --- Camera update ---
         camCtrl.apply(window, dt);
         auto newCam = camCtrl.makeCamera(scene.cam(), dt);
-        bool camChanged = ((newCam->pos() - scene.cam().pos()).squaredNorm() > 1.0f ||
+        bool camChanged = ((newCam->pos() - scene.cam().pos()).squaredNorm() > 0.01f ||
                            (newCam->dir() - scene.cam().dir()).squaredNorm() > 0.0001f);
 
         if (camChanged) {
@@ -227,10 +233,13 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                          GL_RGB, GL_FLOAT, texData.data());
         }
 
-        // --- ImGui panel ---
-        ImGui::SetNextWindowPos(ImVec2(float(fbW) + 20.0f, 10.0f), ImGuiCond_Once);
-        ImGui::SetNextWindowSize(ImVec2(240.0f, float(fbH)), ImGuiCond_Once);
-        ImGui::Begin("Settings");
+        // --- Settings panel (right side) ---
+        const float panelW = 240.0f;
+        ImGui::SetNextWindowPos(ImVec2(float(winW) - panelW, 0.0f), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(panelW, float(winH)), ImGuiCond_Always);
+        ImGui::Begin("Settings", nullptr,
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
         ImGui::Text("FPS: %.1f", io.Framerate);
         ImGui::Text("SPP: %d / %s", sharedFB.currentSpp,
             previewActive ? "preview" : "full");
@@ -255,15 +264,24 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         ImGui::Text("RMB=look  WASD=move  SPACE=render");
         ImGui::End();
 
-        // --- Draw texture ---
-        // Use ImGui to draw the framebuffer texture
+        // --- Viewport (left side, auto-scaled) ---
+        float viewW = float(winW) - panelW;
+        float viewH = float(winH);
+        float scale = std::min(viewW / float(fbW), viewH / float(fbH));
+        float imgW  = float(fbW) * scale;
+        float imgH  = float(fbH) * scale;
+        float padX  = (viewW - imgW) * 0.5f;
+        float padY  = (viewH - imgH) * 0.5f;
+
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(float(fbW), float(fbH) + 40.0f));
+        ImGui::SetNextWindowSize(ImVec2(viewW, viewH));
         ImGui::Begin("Viewport", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
-        ImGui::Image((ImTextureID)(intptr_t)texID, ImVec2(float(fbW), float(fbH)),
-                     ImVec2(0, 1), ImVec2(1, 0)); // flip Y
+            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::SetCursorPos(ImVec2(padX, padY));
+        ImGui::Image((ImTextureID)(intptr_t)texID, ImVec2(imgW, imgH),
+                     ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         // --- Render ---
