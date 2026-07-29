@@ -149,7 +149,12 @@ bool Controller::load(std::string config_path) {
       scene_->addPrimitive(prim);
 
     } else if (type == "mesh") {
-      auto m = std::make_shared<Mesh>(getBsdf(bsdfName));
+      std::shared_ptr<Bsdf> bsdf = getBsdf(bsdfName);
+      if (pj.contains("texture") && bsdfName == "lambertian") {
+        bsdf = std::make_shared<LambertianBsdf>(
+          std::make_shared<BitmapTexture>(pj["texture"].get<std::string>()));
+      }
+      auto m = std::make_shared<Mesh>(bsdf);
       if (!m->fetchFrom(pj["file"].get<std::string>())) {
         std::cerr << "Controller::load failed to load mesh: " << pj["file"] << std::endl;
         return false;
