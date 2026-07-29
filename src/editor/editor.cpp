@@ -85,9 +85,19 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     auto launchFull = [&]() {
         isPreview     = false;
         needRestart   = false;
-        fullTargetSpp = fullSpp;        // snapshot mutable params
+        fullTargetSpp = fullSpp;
         fullTargetW   = targetW;
         fullTargetH   = targetH;
+        printf("=== Full Render ===\n");
+        printf("  Camera: pos=(%.1f %.1f %.1f) dir=(%.3f %.3f %.3f) fov=%.1f\n",
+               scene.cam().pos().x(), scene.cam().pos().y(), scene.cam().pos().z(),
+               scene.cam().dir().x(), scene.cam().dir().y(), scene.cam().dir().z(),
+               scene.cam().fov());
+        printf("  Resolution: %dx%d  SPP: %d  MaxBounce: %d  GP_medium: %s\n",
+               fullTargetW, fullTargetH, fullTargetSpp,
+               g_pathTracerSettings.max_bounce,
+               g_pathTracerSettings.skip_medium ? "skipped" : "enabled");
+        printf("==================\n");
         controller.ackSppPass();
         auto fullCam = std::make_shared<Camera>(
             scene.cam().pos(), scene.cam().dir(), Vector3f(0,1,0),
@@ -216,8 +226,6 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         // --- When full render completes, capture result to tab ---
         if (!isPreview && controller.isSppPassDone() &&
             controller.getCurrentSpp() >= fullTargetSpp) {
-            printf("CAPTURE: currentSpp=%d fullTargetSpp=%d w=%d h=%d\n",
-                controller.getCurrentSpp(), fullTargetSpp, fullTargetW, fullTargetH);
             std::time_t t = std::time(nullptr);
             char buf[32];
             std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
