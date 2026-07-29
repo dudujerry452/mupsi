@@ -165,18 +165,16 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         renderCancel.store(false);
         previewActive = isPreview;
 
-        auto fb = std::make_shared<Framebuffer>(fbW, fbH);
-        sharedFB.set(fb, 0);
-
-        renderThread = std::thread([&, fb, targetSpp]() mutable {
+        renderThread = std::thread([&, targetSpp]() {
             Renderer renderer;
             renderer.setCancelFlag(&renderCancel);
             renderer.prepareRender(scene);
             bool done = renderer.startRenderProgressive(scene, targetSpp,
                 [&](int s) {
-                    sharedFB.set(fb, s);
+                    sharedFB.set(renderer.getFramebuffer(), s);
                 });
-            (void)done;
+            if (done && !renderCancel.load())
+                sharedFB.set(renderer.getFramebuffer(), targetSpp);
         });
     };
 
