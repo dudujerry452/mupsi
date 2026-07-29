@@ -193,10 +193,11 @@ void Controller::startProgressive(int targetSpp) {
     renderer_->setCancelFlag(&cancel_);
     renderer_->prepareRender(*scene_);
 
-    // Ensure back buffer exists
+    // Keep old front buffer alive so display doesn't flicker black
     int w = scene_->cam().width(), h = scene_->cam().height();
     framebufferBack_ = std::make_shared<Framebuffer>(w, h);
-    framebufferFront_ = std::make_shared<Framebuffer>(w, h);
+    if (!framebufferFront_ || framebufferFront_->width() != w || framebufferFront_->height() != h)
+        framebufferFront_ = std::make_shared<Framebuffer>(w, h);
 
     renderer_->startRenderProgressive(*scene_, targetSpp,
         [&](int s) {
