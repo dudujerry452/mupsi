@@ -5,6 +5,7 @@
 #include "rendering/framebuffer.h"
 #include "geometry/primitive.h"
 #include "primitives/sphere.h"
+#include "primitives/mesh.h"
 #include "primitives/skydrome.h"
 #include "bsdf/bsdf.h"
 #include "texture/texture.h"
@@ -13,6 +14,7 @@
 #include "gp/meanfunction.h"
 #include "rendering/camera.h"
 
+#include <Eigen/Geometry>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <thread>
@@ -145,6 +147,20 @@ bool Controller::load(std::string config_path) {
       }
 
       scene_->addPrimitive(prim);
+
+    } else if (type == "mesh") {
+      auto m = std::make_shared<Mesh>(getBsdf(bsdfName));
+      if (!m->fetchFrom(pj["file"].get<std::string>())) {
+        std::cerr << "Controller::load failed to load mesh: " << pj["file"] << std::endl;
+        return false;
+      }
+      if (pj.contains("transform")) {
+        const auto& t = pj["transform"];
+        Vector3f pos = t.contains("position") ? jsonToVec3(t["position"]) : Vector3f::Zero();
+        float    scl = t.contains("scale") ? t["scale"].get<float>() : 1.0f;
+        m->setTransform(Affine3f(Translation3f(pos) * Scaling(scl)).matrix());
+      }
+      scene_->addPrimitive(m);
 
     } else {
       std::cerr << "Controller::load unknown primitive type: " << type << std::endl;
