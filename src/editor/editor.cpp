@@ -33,13 +33,11 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     Scene& scene = *controller.getScene();
 
     // --- Display constants ---
-    constexpr int winW = 1280, winH  = 800;
     constexpr int previewW = 256, previewH = 256;
     constexpr int previewSpp = 4;
-    constexpr float panelW = winW * 0.25f;  // right 1/4
 
-    // --- GL init ---
-    GlViewer viewer(previewW, previewH, winW, winH, windowTitle);
+    // --- GL init (use a reasonable default size; actual layout adapts to window) ---
+    GlViewer viewer(previewW, previewH, 1280, 800, windowTitle);
 
     // --- Camera ---
     CameraController camCtrl;
@@ -191,12 +189,16 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             viewer.uploadTexture(texBuf.data(), previewW, previewH);
         }
 
-        // --- Settings panel (right 1/4) ---
-        float viewW_ = winW - panelW;
-        float viewH_ = float(winH);
+        // --- Dynamic layout: use logical window size for ImGui coords ---
+        int winW, winH;
+        glfwGetWindowSize(viewer.window(), &winW, &winH);
+        float panelW = float(winW) * 0.25f;
+        float viewW  = float(winW) - panelW;
+        float viewH  = float(winH);
 
-        ImGui::SetNextWindowPos(ImVec2(winW - panelW, 0.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(panelW, float(winH)), ImGuiCond_Always);
+        // --- Settings panel (right 1/4) ---
+        ImGui::SetNextWindowPos(ImVec2(viewW, 0.0f), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(panelW, viewH), ImGuiCond_Always);
         ImGui::Begin("Settings", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
@@ -259,15 +261,11 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
 
         // --- Viewport with tabs ---
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(viewW_, viewH_));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::SetNextWindowSize(ImVec2(viewW, viewH));
         ImGui::Begin("Viewport", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-            ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::PopStyleVar(2);
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         if (ImGui::BeginTabBar("Tabs")) {
             if (ImGui::BeginTabItem("Live")) {
