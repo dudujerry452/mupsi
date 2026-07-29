@@ -32,11 +32,11 @@ struct SavedImage {
 int runEditor(Controller& controller, const std::string& windowTitle) {
     Scene& scene = *controller.getScene();
 
-    // --- Display constants ---
-    constexpr int previewW = 256, previewH = 256;
-    constexpr int previewSpp = 4;
+    // --- Preview settings (editable) ---
+    int previewW = 256, previewH = 256;
+    int previewSpp = 4;
 
-    // --- GL init (use a reasonable default size; actual layout adapts to window) ---
+    // --- GL init ---
     GlViewer viewer(previewW, previewH, 1280, 800, windowTitle);
 
     // --- Camera ---
@@ -304,6 +304,11 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                 g_pathTracerSettings.max_bounce = bounce;
                 if (isPreview) launchPreview();
             }
+            if (ImGui::SliderInt("Preview SPP", &previewSpp, 1, 16)) {
+                if (isPreview) launchPreview();
+            }
+            ImGui::InputInt("Preview W", &previewW, 1, 100);
+            ImGui::InputInt("Preview H", &previewH, 1, 100);
             int fs = fullSpp;
             if (ImGui::SliderInt("Full SPP", &fs, 1, 256))
                 fullSpp = fs;
