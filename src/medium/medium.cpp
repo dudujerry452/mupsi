@@ -9,7 +9,7 @@ namespace mupsi {
   SurfaceScatterEvent Medium::makeSurfaceEventFromMedium(const MediumSample& sample, 
         IntersectionInfo& info, Ray& ray, Sampler& sampler, Sampler& medium_sampler) const {
       SurfaceScatterEvent event; 
-      event.wo = ray.direction(); 
+      event.wo = -ray.direction(); // toward previous vertex, matches hard surface convention
       event.normal = sample.normal; 
       event.sampler = &sampler;
 

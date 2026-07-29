@@ -82,17 +82,24 @@ bool PathTracer::handleVolume(SurfaceScatterEvent& event,
 
     const IntersectionInfo& info = *event.info;
 
+    // NEE (next event estimation) — same logic as handleSurface
     LightSample light_sample;
     if(scene.chooseLight(info.p, sampler, light_sample)) {
-      Ray ray(info.p + event.normal * settings_->eps, light_sample.d);
-      auto trans = medium.transmittance(ray, sample, medium_sampler);
+      Ray shadowRay(info.p + event.normal * settings_->eps, light_sample.d);
+      float bias_dist = light_sample.dist - settings_->eps * std::abs(light_sample.d.dot(event.normal));
+      shadowRay.setFarT(bias_dist * 0.99f);
+      auto trans = medium.transmittance(shadowRay, sample, medium_sampler);
+
+      SurfaceScatterEvent directEvent = event;
+      directEvent.wi = light_sample.d;
+      Vector3f f = info.bsdf->weight(directEvent);
       emission += trans.cwiseProduct(
-        throughput.cwiseProduct(light_sample.weight) * std::max(0.0f, light_sample.d.dot(event.normal))
-      ); 
+        throughput.cwiseProduct(f.cwiseProduct(light_sample.weight))
+      ) * std::fabs(light_sample.d.dot(event.normal));
     }
 
-    // bsdf sample 
-    info.bsdf->sample(event); // 填充wi, pdf, rad
+    // bsdf sample
+    info.bsdf->sample(event); // fills wi, pdf, weight
 
     throughput = throughput.cwiseProduct((event.weight));
     float survival = throughput.maxCoeff();

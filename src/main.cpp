@@ -48,7 +48,7 @@ int main()
         )
     );
 
-    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization; // Set GP mode to SingleRealization
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus; // Set GP mode to SingleRealization
 
     auto spotTex = std::make_shared<BitmapTexture>(
         "/home/dudujerry/models/spot/spot_texture.png");
@@ -94,14 +94,15 @@ int main()
 
     scene.setCamera(std::make_shared<Camera>(
         Vector3f(0.0f, 0.0f, 0.0f), Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 1.0f, 0.0f),
-        45.0f, 1024, 1024
+        45.0f, 256, 256
     ));
 
-    PathTracer::settings().max_bounce = 3;
+    PathTracer::settings().max_bounce = 10;
+    PathTracer::settings().max_medium_bounce = 10;
 
     Renderer renderer;
     renderer.prepareRender(scene);
-    renderer.startRender(scene, 3);
+    renderer.startRender(scene, 1);
     renderer.afterRender();
 
     return 0;
