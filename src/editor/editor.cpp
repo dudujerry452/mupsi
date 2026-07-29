@@ -183,6 +183,36 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         }
         ctrlSWasDown = ctrlSNow;
 
+        // --- Ctrl+W → close current tab (Live unaffected) ---
+        static bool ctrlWWasDown = false;
+        bool wKeyDown = glfwGetKey(viewer.window(), GLFW_KEY_W) == GLFW_PRESS;
+        bool ctrlWNow = ctrlDown && !wKeyDown && ctrlWWasDown; // detect ctrl+W release (W up while ctrl still down, or detect edge)
+        // Simpler: edge-detect ctrl+W press
+        if (ctrlDown && wKeyDown && !ctrlWWasDown) {
+            if (activeTab >= 0 && activeTab < (int)savedImages.size()) {
+                savedImages[activeTab].open = false;
+            }
+        }
+        ctrlWWasDown = (ctrlDown && wKeyDown);
+
+        // --- T / Shift+T → cycle tabs ---
+        bool shiftDown = glfwGetKey(viewer.window(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+                      || glfwGetKey(viewer.window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+        static bool tWasDown = false;
+        bool tDown = glfwGetKey(viewer.window(), GLFW_KEY_T) == GLFW_PRESS && !ctrlDown;
+        if (tDown && !tWasDown) {
+            int dir = shiftDown ? -1 : 1;
+            activeTab += dir;
+            if (activeTab >= (int)savedImages.size()) activeTab = -1;
+            else if (activeTab < -1) activeTab = (int)savedImages.size() - 1;
+        }
+        tWasDown = tDown;
+
+        // --- Q → quit ---
+        if (glfwGetKey(viewer.window(), GLFW_KEY_Q) == GLFW_PRESS && !ctrlDown) {
+            glfwSetWindowShouldClose(viewer.window(), GLFW_TRUE);
+        }
+
         // --- When full render completes, capture result to tab ---
         if (!isPreview && controller.isSppPassDone() &&
             controller.getCurrentSpp() >= fullTargetSpp) {
@@ -310,26 +340,33 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        if (ImGui::BeginTabBar("Tabs")) {
-            if (ImGui::BeginTabItem("Live")) {
-                activeTab = -1;
-                ImGui::EndTabItem();
-            }
-            for (int i = 0; i < (int)savedImages.size(); i++) {
-                auto& si = savedImages[i];
-                if (ImGui::BeginTabItem(si.title.c_str(), &si.open)) {
-                    activeTab = i;
-                    ImGui::EndTabItem();
-                }
-            }
-            savedImages.erase(
-                std::remove_if(savedImages.begin(), savedImages.end(),
-                    [](const SavedImage& s) { return !s.open; }),
-                savedImages.end());
-            if (activeTab >= (int)savedImages.size()) activeTab = (int)savedImages.size() - 1;
-            if (savedImages.empty()) activeTab = -1;
-            ImGui::EndTabBar();
+        // --- Manual tab bar ---
+        ImGui::BeginGroup();
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, activeTab == -1
+                ? ImGui::GetStyleColorVec4(ImGuiCol_TabActive)
+                : ImGui::GetStyleColorVec4(ImGuiCol_Tab));
+            if (ImGui::Button("Live")) activeTab = -1;
+            ImGui::PopStyleColor();
         }
+        for (int i = 0; i < (int)savedImages.size(); i++) {
+            ImGui::SameLine(0, 2);
+            ImGui::PushStyleColor(ImGuiCol_Button, activeTab == i
+                ? ImGui::GetStyleColorVec4(ImGuiCol_TabActive)
+                : ImGui::GetStyleColorVec4(ImGuiCol_Tab));
+            if (ImGui::Button(savedImages[i].title.c_str())) activeTab = i;
+            ImGui::PopStyleColor();
+            // right-click to close
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                savedImages[i].open = false;
+        }
+        savedImages.erase(
+            std::remove_if(savedImages.begin(), savedImages.end(),
+                [](const SavedImage& s) { return !s.open; }),
+            savedImages.end());
+        if (activeTab >= (int)savedImages.size()) activeTab = (int)savedImages.size() - 1;
+        if (savedImages.empty()) activeTab = -1;
+        ImGui::EndGroup();
 
         // Scale and draw texture in remaining content area
         ImVec2 avail = ImGui::GetContentRegionAvail();
