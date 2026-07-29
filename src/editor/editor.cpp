@@ -90,25 +90,39 @@ private:
 };
 
 // =========================================================================
-// Shared framebuffer (render thread <-> UI thread)
+// Double-buffered display state (render thread <-> UI thread)
 // =========================================================================
-struct SharedFB {
-    std::shared_ptr<Framebuffer> fb;
+struct DisplayState {
+    std::shared_ptr<Framebuffer> displayFB;  // stable copy for UI to read
     std::mutex mtx;
     int  currentSpp = 0;
-    bool updated    = false;
 
-    void set(std::shared_ptr<Framebuffer> f, int spp) {
+    void swapFrom(const Framebuffer& renderFB, int spp) {
         std::lock_guard<std::mutex> lock(mtx);
-        fb = f;
+        // Deep-copy only the averaged pixels into a fresh framebuffer
+        if (!displayFB || displayFB->width() != renderFB.width() ||
+            displayFB->height() != renderFB.height())
+            displayFB = std::make_shared<Framebuffer>(renderFB.width(), renderFB.height());
+        for (int y = 0; y < renderFB.height(); y++)
+            for (int x = 0; x < renderFB.width(); x++)
+                (*displayFB)(x, y).rgb = renderFB(x, y).rgb;
         currentSpp = spp;
-        updated = true;
     }
 
-    std::shared_ptr<Framebuffer> get() {
-        std::lock_guard<std::mutex> lock(mtx);
-        updated = false;
-        return fb;
+    // Snapshot for GL upload — caller locked mtx
+    void snapshotTonemapped(std::vector<float>& out) const {
+        int w = displayFB->width(), h = displayFB->height();
+        out.resize(w * h * 3);
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++) {
+                Vec3f c = tonemap((*displayFB)(x, y).rgb);
+                int i = (y * w + x) * 3;
+                out[i+0] = c.x(); out[i+1] = c.y(); out[i+2] = c.z();
+            }
+    }
+
+    static Vec3f tonemap(const Vec3f& v) {
+        return Vec3f(v.x()/(1+v.x()), v.y()/(1+v.y()), v.z()/(1+v.z()));
     }
 };
 
@@ -154,9 +168,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     CameraController camCtrl;
     camCtrl.syncFromCamera(scene.cam());
 
-    std::atomic<bool> renderCancel{false};
-    std::thread        renderThread;
-    SharedFB           sharedFB;
+    DisplayState       dispState;
 
     bool  previewActive = false;
     int   previewSpp    = 4;
@@ -164,24 +176,13 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     float lastFrameTime = float(glfwGetTime());
 
     auto launchRender = [&](int targetSpp, bool isPreview) {
-        if (renderThread.joinable()) {
-            renderCancel.store(true);
-            renderThread.join();
-        }
-        renderCancel.store(false);
         previewActive = isPreview;
-
-        renderThread = std::thread([&, targetSpp]() {
-            Renderer renderer;
-            renderer.setCancelFlag(&renderCancel);
-            renderer.prepareRender(scene);
-            bool done = renderer.startRenderProgressive(scene, targetSpp,
-                [&](int s) {
-                    sharedFB.set(renderer.getFramebuffer(), s);
-                });
-            if (done && !renderCancel.load())
-                sharedFB.set(renderer.getFramebuffer(), targetSpp);
-        });
+        // Controller manages the render thread + double-buffering.
+        // onFrame deep-copies the stable averaged pixels to dispState.
+        controller.startProgressive(targetSpp,
+            [&](const Framebuffer& fb, int s) {
+                dispState.swapFrom(fb, s);
+            });
     };
 
     launchRender(previewSpp, true);
@@ -218,20 +219,14 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
         spaceWasDown = spaceDown;
 
         // --- Upload to GL texture ---
-        auto fb = sharedFB.get();
-        if (fb) {
-            for (int y = 0; y < fbH; y++)
-                for (int x = 0; x < fbW; x++) {
-                    Vec3f c = fb->tonemapped(x, y);
-                    int i = (y * fbW + x) * 3;
-                    texData[i + 0] = c.x();
-                    texData[i + 1] = c.y();
-                    texData[i + 2] = c.z();
-                }
-            glBindTexture(GL_TEXTURE_2D, texID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbW, fbH, 0,
-                         GL_RGB, GL_FLOAT, texData.data());
+        {
+            std::lock_guard<std::mutex> lock(dispState.mtx);
+            if (dispState.displayFB)
+                dispState.snapshotTonemapped(texData);
         }
+        glBindTexture(GL_TEXTURE_2D, texID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbW, fbH, 0,
+                     GL_RGB, GL_FLOAT, texData.data());
 
         // --- Settings panel (right side) ---
         const float panelW = 240.0f;
@@ -241,7 +236,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
         ImGui::Text("FPS: %.1f", io.Framerate);
-        ImGui::Text("SPP: %d / %s", sharedFB.currentSpp,
+        ImGui::Text("SPP: %d / %s", dispState.currentSpp,
             previewActive ? "preview" : "full");
 
         if (ImGui::SliderInt("Preview SPP", &previewSpp, 1, 16)) {
@@ -296,8 +291,7 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
     }
 
     // --- Cleanup ---
-    renderCancel.store(true);
-    if (renderThread.joinable()) renderThread.join();
+    controller.stop();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

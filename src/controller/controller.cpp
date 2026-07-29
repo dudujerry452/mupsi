@@ -180,6 +180,28 @@ void Controller::start() {
   });
 }
 
+void Controller::startProgressive(int targetSpp,
+    std::function<void(const Framebuffer&, int)> onFrame) {
+  if (!scene_) return;
+  stop();
+  shutdown_ = false;
+  cancel_   = false;
+
+  renderThread_ = std::thread([this, targetSpp, onFrame = std::move(onFrame)]() {
+    renderer_ = std::make_shared<Renderer>();
+    renderer_->setCancelFlag(&cancel_);
+    renderer_->prepareRender(*scene_);
+    renderer_->startRenderProgressive(*scene_, targetSpp,
+        [&](int s) {
+          if (!cancel_.load()) onFrame(*renderer_->getFramebuffer(), s);
+        });
+    if (!cancel_.load()) {
+      framebufferFront_ = renderer_->getFramebuffer();
+      frameReady_.store(true);
+    }
+  });
+}
+
 void Controller::cancel() {
   cancel_.store(true);
 }

@@ -5,6 +5,7 @@
 #include <atomic>
 #include <thread>
 #include <string>
+#include <functional>
 
 
 
@@ -37,9 +38,16 @@ Controller() = default;
 ~Controller() = default;
 
 bool load(std::string config_path);
-void start(); // start render thread
-void cancel(); // signal stop
-void stop(); // join render thread
+
+// Full render (all spp at once, save on completion).
+void start();
+// Progressive render — fires onFrame callback each SPP pass with the Renderer's framebuffer.
+// Caller is responsible for copying data out of the framebuffer inside onFrame
+// (the framebuffer is still being written to between callbacks).
+void startProgressive(int targetSpp,
+                       std::function<void(const Framebuffer& fb, int currentSpp)> onFrame);
+void cancel();
+void stop();
 
 bool isFrameReady() const;
 const Framebuffer& getFrameBuffer() const;
