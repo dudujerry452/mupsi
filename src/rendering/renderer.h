@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "geometry/scene.h"
 #include <atomic>
+#include <functional>
 
 namespace mupsi {
 
@@ -21,6 +22,10 @@ class Renderer {
 
     void prepareRender(Scene& scene);
     void startRender(Scene& scene, int spp);
+    // Progressive: runs spp outer loop, calls onSpp(k+1) after each sample pass.
+    // Returns true if completed, false if cancelled.
+    bool startRenderProgressive(Scene& scene, int targetSpp,
+                                std::function<void(int currentSpp)> onSpp = {});
     void afterRender();
 
     std::shared_ptr<Framebuffer> getFramebuffer() const { return framebuffer_; }

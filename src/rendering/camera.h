@@ -19,9 +19,13 @@ namespace mupsi
     }
     virtual ~Camera() = default;
 
-    Ray generateRay(int x, int y) const; // x, y in [0, 1], (0, 0) is left-bottom corner
-    int width() const { return width_; }
+    Ray generateRay(int x, int y) const; // x, y in pixel coords
+
+    int width()  const { return width_; }
     int height() const { return height_; }
+    const Vector3f& pos() const { return position_; }
+    const Vector3f& dir() const { return direction_; }
+    float fov() const { return fov_; }
 
   private:
     Vector3f position_, direction_, up_; // dir, up is unit vector
@@ -29,7 +33,7 @@ namespace mupsi
     float aspect_ratio_;
     int width_, height_;
 
-    Vector3f right_, true_up_; // 相机坐标系的右向量和真实的上向量
+    Vector3f right_, true_up_;
   };
 }
 

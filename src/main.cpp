@@ -2,7 +2,6 @@
 #include <memory>
 #include <thread>
 #include <chrono>
-#include <Eigen/Dense>
 
 #include "controller/controller.h"
 #include "rendering/framebuffer.h"

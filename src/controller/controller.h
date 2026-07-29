@@ -48,6 +48,7 @@ void consumeFrameBuffer();
 std::shared_ptr<Scene> getScene() const {return scene_; }
 std::shared_ptr<Renderer> getRenderer() const {return renderer_; }
 
+int getSpp() const { return spp_; }
 void setOutputPath(const std::string& path) { outputPath_ = path; }
 const std::string& outputPath() const { return outputPath_; }
 
