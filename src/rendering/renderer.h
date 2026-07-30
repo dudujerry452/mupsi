@@ -2,7 +2,7 @@
 
 #include "framebuffer.h"
 #include "camera.h"
-#include "geometry/scene.h"
+#include "render_context.h"
 #include <atomic>
 #include <functional>
 
@@ -20,11 +20,11 @@ class Renderer {
 
     void setCancelFlag(std::atomic<bool>* flag) { cancel_ = flag; }
 
-    void prepareRender(Scene& scene);
-    void startRender(Scene& scene, int spp);
+    void prepareRender(const RenderContext& ctx);
+    void startRender(const RenderContext& ctx, int spp);
     // Progressive: runs spp outer loop, calls onSpp(k+1) after each sample pass.
     // Returns true if completed, false if cancelled.
-    bool startRenderProgressive(Scene& scene, int targetSpp,
+    bool startRenderProgressive(const RenderContext& ctx, int targetSpp,
                                 std::function<void(int currentSpp)> onSpp = {});
     void afterRender();
 

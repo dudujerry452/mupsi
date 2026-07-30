@@ -6,6 +6,7 @@
 #include "bsdf/bsdf.h"
 #include "geometry/intersection.h"
 #include "math/sampler.h"
+#include "gp/gpnoise.h"
 #include <cstdint>
 #include <memory>
 
@@ -21,7 +22,9 @@ struct PathTracerSettings {
   bool  skip_medium = false;
 };
 
-class Medium; 
+struct RenderContext;
+
+class Medium;
 class MediumSample;
 
 extern PathTracerSettings g_pathTracerSettings;
@@ -34,28 +37,30 @@ public:
   PathTracer() = default;
   virtual ~PathTracer() = default;
 
-  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler); 
+  SurfaceScatterEvent makeSurfaceScatterEvent(IntersectionInfo& info, Ray& ray, UniformPathSampler& sampler);
 
-  bool handleSurface(SurfaceScatterEvent& event, Vector3f& throughput, Vector3f& emission, 
-    Ray& ray, 
-    Scene& scene, 
+  bool handleSurface(SurfaceScatterEvent& event, Vector3f& throughput, Vector3f& emission,
+    Ray& ray,
+    const Scene& scene,
+    const PathTracerSettings& pts,
     Sampler& sampler);
 
-  bool handleVolume(SurfaceScatterEvent& event, 
+  bool handleVolume(SurfaceScatterEvent& event,
     MediumSample& sample,
     Medium& medium,
-    Vector3f& throughput, Vector3f& emission, 
-    Ray& ray, 
-    Scene& scene, 
-    Sampler& sampler, 
+    Vector3f& throughput, Vector3f& emission,
+    Ray& ray,
+    const Scene& scene,
+    const PathTracerSettings& pts,
+    Sampler& sampler,
     Sampler& medium_sampler
   );
-    
-  Vector3f trace(Vector2i pixel, Scene& scene, uint32_t seed, int spp); 
+
+  Vector3f trace(Vector2i pixel, const RenderContext& ctx, uint32_t seed, int spp);
 
   void setMedium(std::shared_ptr<Medium> medium) { medium_ = medium; }
   std::shared_ptr<Medium> getMedium() const { return medium_; }
-}; 
+};
 }
 
-#endif 
+#endif

@@ -47,7 +47,7 @@ class GPMedium : public Medium {
     return default_bsdf_; 
   }
 
-  void sampleCondition(MediumSample& sample, Sampler& medium_sampler) const;
+  void sampleCondition(MediumSample& sample, Sampler& medium_sampler, const GPSettings& gpSettings) const;
 };
 
 }

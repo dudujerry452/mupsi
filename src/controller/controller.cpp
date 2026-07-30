@@ -1,6 +1,7 @@
 #include "controller.h"
 #include "geometry/scene.h"
 #include "rendering/renderer.h"
+#include "rendering/render_context.h"
 #include "rendering/trace.h"
 #include "rendering/framebuffer.h"
 #include "geometry/primitive.h"
@@ -200,10 +201,14 @@ void Controller::start() {
   cancel_   = false;
 
   renderThread_ = std::thread([this]() {
+    // Snapshot all mutable state before rendering — no globals or scene->cam()
+    // are touched from this point onward.
+    RenderContext ctx(scene_->cam(), g_pathTracerSettings, g_gpSettings, scene_);
+
     renderer_ = std::make_shared<Renderer>();
     renderer_->setCancelFlag(&cancel_);
-    renderer_->prepareRender(*scene_);
-    renderer_->startRender(*scene_, spp_);
+    renderer_->prepareRender(ctx);
+    renderer_->startRender(ctx, spp_);
     if (!cancel_.load()) {
       framebufferFront_ = renderer_->getFramebuffer();
       sppPassDone_.store(true);
@@ -221,21 +226,25 @@ void Controller::startProgressive(int targetSpp, bool skipMedium) {
   g_pathTracerSettings.skip_medium = skipMedium;
 
   renderThread_ = std::thread([this, targetSpp]() {
+    // Snapshot all mutable state before rendering begins.
+    // From this point on, the render thread touches NO globals or shared mutable state.
+    RenderContext ctx(scene_->cam(), g_pathTracerSettings, g_gpSettings, scene_);
+
     renderer_ = std::make_shared<Renderer>();
     renderer_->setCancelFlag(&cancel_);
-    renderer_->prepareRender(*scene_);
+    renderer_->prepareRender(ctx);
 
     // Rebuild GP medium if kernel params changed
     if (hasGpMedium_)
         applyGpMedium();
 
     // Keep old front buffer alive so display doesn't flicker black
-    int w = scene_->cam().width(), h = scene_->cam().height();
+    int w = ctx.camera.width(), h = ctx.camera.height();
     framebufferBack_ = std::make_shared<Framebuffer>(w, h);
     if (!framebufferFront_ || framebufferFront_->width() != w || framebufferFront_->height() != h)
         framebufferFront_ = std::make_shared<Framebuffer>(w, h);
 
-    renderer_->startRenderProgressive(*scene_, targetSpp,
+    renderer_->startRenderProgressive(ctx, targetSpp,
         [&](int s) {
           if (cancel_.load()) return;
           // Deep copy renderer's averaged pixels → back buffer
