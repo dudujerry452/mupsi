@@ -16,6 +16,10 @@
 #include <chrono>
 #include <ctime>
 #include <iostream>
+#include <fstream>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace mupsi {
 
@@ -316,6 +320,28 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGui::InputInt("Target H", &targetH, 1, 100);
 
             ImGui::Separator();
+            if (controller.hasGpMedium()) {
+                if (ImGui::CollapsingHeader("GP Medium")) {
+                    static const char* modes[] = {"single_realization", "renewal_plus"};
+                    int modeIdx = (controller.gpMode() == "renewal_plus") ? 1 : 0;
+                    if (ImGui::Combo("Mode", &modeIdx, modes, 2)) {
+                        controller.setGpMode(modes[modeIdx]);
+                        if (isPreview) launchPreview();
+                    }
+                    float s = controller.gpKernelSigma();
+                    if (ImGui::InputFloat("Sigma", &s, 0.1f, 1.0f, "%.1f")) {
+                        controller.setGpKernelSigma(s);
+                    }
+                    float l = controller.gpKernelLength();
+                    if (ImGui::InputFloat("Length", &l, 0.1f, 1.0f, "%.1f")) {
+                        controller.setGpKernelLength(l);
+                    }
+                    int p = controller.gpPointsPerCell();
+                    if (ImGui::InputInt("Pts/Cell", &p, 1, 10)) {
+                        controller.setGpPointsPerCell(p);
+                    }
+                }
+            }
             ImGui::Text("Camera: %.0f %.0f %.0f",
                 scene.cam().pos().x(), scene.cam().pos().y(), scene.cam().pos().z());
             ImGui::Text("RMB=look  WASD=move  SPACE=render");
@@ -340,6 +366,37 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
                     saveToastPath  = fname;
                 }
                 ImGui::Text("(or Ctrl+S)");
+                ImGui::Separator();
+                if (ImGui::Button("Save Config", ImVec2(-1, 0))) {
+                    std::string cfgPath = controller.configPath();
+                    std::ifstream in(cfgPath);
+                    if (in.is_open()) {
+                        json j = json::parse(in);
+                        j["camera"]["pos"][0] = scene.cam().pos().x();
+                        j["camera"]["pos"][1] = scene.cam().pos().y();
+                        j["camera"]["pos"][2] = scene.cam().pos().z();
+                        j["camera"]["dir"][0] = scene.cam().dir().x();
+                        j["camera"]["dir"][1] = scene.cam().dir().y();
+                        j["camera"]["dir"][2] = scene.cam().dir().z();
+                        j["width"]  = si.w;
+                        j["height"] = si.h;
+                        j["spp"]    = si.spp;
+                        j["max_bounce"] = g_pathTracerSettings.max_bounce;
+                        j["gp_mode"] = controller.gpMode();
+                        if (controller.hasGpMedium()) {
+                            if (!j.contains("kernel")) j["kernel"] = json::object();
+                            j["kernel"]["sigma"]         = controller.gpKernelSigma();
+                            j["kernel"]["length_scale"]  = controller.gpKernelLength();
+                            j["kernel"]["points_per_cell"] = controller.gpPointsPerCell();
+                        }
+                        std::string outName = "config_" + si.title + ".json";
+                        for (auto& c : outName) if (c == ':' || c == ' ') c = '_';
+                        std::ofstream out(outName);
+                        out << j.dump(2);
+                        saveToastTimer = 1.5f;
+                        saveToastPath  = outName;
+                    }
+                }
             }
         }
         if (saveToastTimer > 0.0f) {

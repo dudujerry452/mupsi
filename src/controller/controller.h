@@ -6,6 +6,7 @@
 #include <thread>
 #include <string>
 #include <mutex>
+#include <Eigen/Core>
 
 namespace mupsi {
 
@@ -30,7 +31,21 @@ std::atomic<bool> sppPassDone_{false};
 std::atomic<int>  currentSpp_{0};
 
 int  spp_ = 1;
+std::string configPath_;
 std::string outputPath_ = "test.png";
+
+// GP medium parameters (from JSON)
+bool   hasGpMedium_       = false;
+float  gpKernelSigma_     = 1.0f;
+float  gpKernelLength_    = 1.0f;
+int    gpPointsPerCell_   = 3;
+std::string gpMode_       = "single_realization";
+Eigen::Vector3f gpMeanCenter_  = Eigen::Vector3f::Zero();
+float    gpMeanRadius_    = 70.0f;
+std::string gpMeanType_  = "sphere";
+
+// Rebuild GPMedium on scene's primitives with current params
+void applyGpMedium();
 
 public:
 
@@ -72,6 +87,18 @@ std::shared_ptr<Renderer> getRenderer() const {return renderer_; }
 int  getSpp() const { return spp_; }
 void setOutputPath(const std::string& path) { outputPath_ = path; }
 const std::string& outputPath() const { return outputPath_; }
+const std::string& configPath()  const { return configPath_; }
+
+// GP medium parameters (read/write from UI, applied on next frame)
+bool hasGpMedium() const { return hasGpMedium_; }
+float  gpKernelSigma()   const { return gpKernelSigma_; }
+void   setGpKernelSigma(float v)  { gpKernelSigma_ = v; }
+float  gpKernelLength()  const { return gpKernelLength_; }
+void   setGpKernelLength(float v) { gpKernelLength_ = v; }
+int    gpPointsPerCell() const { return gpPointsPerCell_; }
+void   setGpPointsPerCell(int v)  { gpPointsPerCell_ = v; }
+std::string gpMode()     const { return gpMode_; }
+void   setGpMode(const std::string& v);
 
 };
 

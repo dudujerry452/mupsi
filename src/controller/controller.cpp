@@ -35,6 +35,8 @@ static Vector3f jsonToVec3(const json& arr) {
 // --- load ---
 
 bool Controller::load(std::string config_path) {
+  configPath_ = config_path;
+  hasGpMedium_ = false;
   std::ifstream f(config_path);
   if (!f.is_open()) {
     std::cerr << "Controller::load failed to open " << config_path << std::endl;
@@ -66,8 +68,8 @@ bool Controller::load(std::string config_path) {
 
   // --- GP settings ---
   {
-    std::string gpMode = j.value("gp_mode", std::string("single_realization"));
-    if (gpMode == "renewal_plus")
+    gpMode_ = j.value("gp_mode", std::string("single_realization"));
+    if (gpMode_ == "renewal_plus")
       g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus;
     else
       g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization;
@@ -101,6 +103,14 @@ bool Controller::load(std::string config_path) {
     auto noiseGen = std::make_shared<SparseGPNoiseGenerator>(kernel, ptsPerCell);
 
     gpmedium = std::make_shared<GPMedium>(mean, noiseGen);
+
+    hasGpMedium_      = true;
+    gpMeanType_       = meanType;
+    gpMeanCenter_     = (meanType == "sphere") ? jsonToVec3(gpm["mean_center"]) : Vector3f::Zero();
+    gpMeanRadius_     = gpm.value("mean_radius", 70.0f);
+    gpKernelSigma_    = sigma;
+    gpKernelLength_   = length;
+    gpPointsPerCell_  = ptsPerCell;
   }
 
   // --- Skydrome ---
@@ -215,6 +225,10 @@ void Controller::startProgressive(int targetSpp, bool skipMedium) {
     renderer_->setCancelFlag(&cancel_);
     renderer_->prepareRender(*scene_);
 
+    // Rebuild GP medium if kernel params changed
+    if (hasGpMedium_)
+        applyGpMedium();
+
     // Keep old front buffer alive so display doesn't flicker black
     int w = scene_->cam().width(), h = scene_->cam().height();
     framebufferBack_ = std::make_shared<Framebuffer>(w, h);
@@ -280,6 +294,35 @@ void Controller::copyDisplayTo(float* dst, int w, int h) const {
       dst[i + 1] = v.y();
       dst[i + 2] = v.z();
     }
+}
+
+void Controller::setGpMode(const std::string& v) {
+  gpMode_ = v;
+  if (v == "renewal_plus")
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus;
+  else
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization;
+}
+
+void Controller::applyGpMedium() {
+  if (!scene_) return;
+  std::shared_ptr<MeanFunction> mean;
+  if (gpMeanType_ == "sphere") {
+    mean = std::make_shared<SphereMeanFunction>(gpMeanCenter_, gpMeanRadius_);
+  }
+  if (!mean) return;
+
+  auto kernel = std::make_shared<SparseSEKernel>(
+      gpKernelSigma_, gpKernelLength_, Vector3f(1,1,1));
+  auto noiseGen = std::make_shared<SparseGPNoiseGenerator>(
+      kernel, gpPointsPerCell_);
+  auto newMedium = std::make_shared<GPMedium>(mean, noiseGen);
+
+  // Update all primitives that have an int_medium set
+  for (auto& prim : scene_->primitives_) {
+    if (prim->getIntMedium())
+      prim->setMedium(newMedium, prim->getExtMedium());
+  }
 }
 
 } // namespace mupsi

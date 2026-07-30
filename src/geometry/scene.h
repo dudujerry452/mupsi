@@ -52,7 +52,8 @@ namespace mupsi
 
       const Camera& cam() const { return *camera_; }
 
-      friend class Renderer; 
+      friend class Renderer;
+      friend class Controller;
 
   }; 
 }
