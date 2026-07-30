@@ -345,6 +345,37 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             ImGui::Text("Camera: %.0f %.0f %.0f",
                 scene.cam().pos().x(), scene.cam().pos().y(), scene.cam().pos().z());
             ImGui::Text("RMB=look  WASD=move  SPACE=render");
+
+            ImGui::Separator();
+            if (ImGui::Button("Save Config", ImVec2(-1, 0))) {
+                std::string cfgPath = controller.configPath();
+                std::ifstream in(cfgPath);
+                if (in.is_open()) {
+                    json j = json::parse(in);
+                    j["camera"]["pos"][0] = scene.cam().pos().x();
+                    j["camera"]["pos"][1] = scene.cam().pos().y();
+                    j["camera"]["pos"][2] = scene.cam().pos().z();
+                    j["camera"]["dir"][0] = scene.cam().dir().x();
+                    j["camera"]["dir"][1] = scene.cam().dir().y();
+                    j["camera"]["dir"][2] = scene.cam().dir().z();
+                    j["width"]  = isPreview ? previewW : fullTargetW;
+                    j["height"] = isPreview ? previewH : fullTargetH;
+                    j["spp"]    = isPreview ? previewSpp : fullTargetSpp;
+                    j["max_bounce"] = g_pathTracerSettings.max_bounce;
+                    j["gp_mode"] = controller.gpMode();
+                    if (controller.hasGpMedium()) {
+                        if (!j.contains("kernel")) j["kernel"] = json::object();
+                        j["kernel"]["sigma"]         = controller.gpKernelSigma();
+                        j["kernel"]["length_scale"]  = controller.gpKernelLength();
+                        j["kernel"]["points_per_cell"] = controller.gpPointsPerCell();
+                    }
+                    std::string outName = "config_live_" + std::to_string(int(glfwGetTime())) + ".json";
+                    std::ofstream out(outName);
+                    out << j.dump(2);
+                    saveToastTimer = 1.5f;
+                    saveToastPath  = outName;
+                }
+            }
         } else {
             // --- Saved image tab ---
             if (activeTab < (int)savedImages.size()) {
