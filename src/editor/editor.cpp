@@ -261,11 +261,11 @@ int runEditor(Controller& controller, const std::string& windowTitle) {
             }
             viewer.uploadTexture(texBuf.data(), texW, texH);
         } else {
-            texBuf.resize(previewW * previewH * 3);
-            if (isPreview) {
-                controller.copyDisplayTo(texBuf.data(), previewW, previewH);
-            }
-            viewer.uploadTexture(texBuf.data(), previewW, previewH);
+            int rw = isPreview ? previewW : fullTargetW;
+            int rh = isPreview ? previewH : fullTargetH;
+            texBuf.resize(rw * rh * 3);
+            controller.copyDisplayTo(texBuf.data(), rw, rh);
+            viewer.uploadTexture(texBuf.data(), rw, rh);
         }
 
         // --- Dynamic layout: use logical window size for ImGui coords ---
