@@ -1,4 +1,5 @@
 #include "bsdf.h"
+#include "medium/medium.h"
 #include "math/sampler.h"
 #include "math/sample.h"
 #include "texture/texture.h"
@@ -8,6 +9,7 @@
 namespace mupsi {
 
   std::shared_ptr<Texture> Bsdf::default_albedo_ = std::make_shared<ConstantTexture>(Vector3f(0.8, 0.8, 0.8));
+  std::shared_ptr<Bsdf> Medium::default_bsdf_ = std::make_shared<LambertianBsdf>(); // after albedo_
 
   Vector3f LambertianBsdf::eval(SurfaceScatterEvent& event) const {
     return (*albedo_)[event.info->uv] * event.wi.dot(event.normal) / M_PI;

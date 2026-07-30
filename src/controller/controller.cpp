@@ -1,10 +1,12 @@
 #include "controller.h"
 #include "geometry/scene.h"
 #include "rendering/renderer.h"
+#include "rendering/render_context.h"
 #include "rendering/trace.h"
 #include "rendering/framebuffer.h"
 #include "geometry/primitive.h"
 #include "primitives/sphere.h"
+#include "primitives/mesh.h"
 #include "primitives/skydrome.h"
 #include "bsdf/bsdf.h"
 #include "texture/texture.h"
@@ -13,6 +15,7 @@
 #include "gp/meanfunction.h"
 #include "rendering/camera.h"
 
+#include <Eigen/Geometry>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <thread>
@@ -33,6 +36,8 @@ static Vector3f jsonToVec3(const json& arr) {
 // --- load ---
 
 bool Controller::load(std::string config_path) {
+  configPath_ = config_path;
+  hasGpMedium_ = false;
   std::ifstream f(config_path);
   if (!f.is_open()) {
     std::cerr << "Controller::load failed to open " << config_path << std::endl;
@@ -64,8 +69,8 @@ bool Controller::load(std::string config_path) {
 
   // --- GP settings ---
   {
-    std::string gpMode = j.value("gp_mode", std::string("single_realization"));
-    if (gpMode == "renewal_plus")
+    gpMode_ = j.value("gp_mode", std::string("single_realization"));
+    if (gpMode_ == "renewal_plus")
       g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus;
     else
       g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization;
@@ -99,6 +104,14 @@ bool Controller::load(std::string config_path) {
     auto noiseGen = std::make_shared<SparseGPNoiseGenerator>(kernel, ptsPerCell);
 
     gpmedium = std::make_shared<GPMedium>(mean, noiseGen);
+
+    hasGpMedium_      = true;
+    gpMeanType_       = meanType;
+    gpMeanCenter_     = (meanType == "sphere") ? jsonToVec3(gpm["mean_center"]) : Vector3f::Zero();
+    gpMeanRadius_     = gpm.value("mean_radius", 70.0f);
+    gpKernelSigma_    = sigma;
+    gpKernelLength_   = length;
+    gpPointsPerCell_  = ptsPerCell;
   }
 
   // --- Skydrome ---
@@ -146,6 +159,25 @@ bool Controller::load(std::string config_path) {
 
       scene_->addPrimitive(prim);
 
+    } else if (type == "mesh") {
+      std::shared_ptr<Bsdf> bsdf = getBsdf(bsdfName);
+      if (pj.contains("texture") && bsdfName == "lambertian") {
+        bsdf = std::make_shared<LambertianBsdf>(
+          std::make_shared<BitmapTexture>(pj["texture"].get<std::string>()));
+      }
+      auto m = std::make_shared<Mesh>(bsdf);
+      if (!m->fetchFrom(pj["file"].get<std::string>())) {
+        std::cerr << "Controller::load failed to load mesh: " << pj["file"] << std::endl;
+        return false;
+      }
+      if (pj.contains("transform")) {
+        const auto& t = pj["transform"];
+        Vector3f pos = t.contains("position") ? jsonToVec3(t["position"]) : Vector3f::Zero();
+        float    scl = t.contains("scale") ? t["scale"].get<float>() : 1.0f;
+        m->setTransform(Affine3f(Translation3f(pos) * Scaling(scl)).matrix());
+      }
+      scene_->addPrimitive(m);
+
     } else {
       std::cerr << "Controller::load unknown primitive type: " << type << std::endl;
     }
@@ -163,20 +195,71 @@ void Controller::start() {
     return;
   }
 
-  stop(); // join previous thread if any
+  stop();
 
   shutdown_ = false;
   cancel_   = false;
 
   renderThread_ = std::thread([this]() {
+    // Snapshot all mutable state before rendering — no globals or scene->cam()
+    // are touched from this point onward.
+    RenderContext ctx(scene_->cam(), g_pathTracerSettings, g_gpSettings, scene_);
+
     renderer_ = std::make_shared<Renderer>();
     renderer_->setCancelFlag(&cancel_);
-    renderer_->prepareRender(*scene_);
-    renderer_->startRender(*scene_, spp_);
+    renderer_->prepareRender(ctx);
+    renderer_->startRender(ctx, spp_);
     if (!cancel_.load()) {
       framebufferFront_ = renderer_->getFramebuffer();
-      frameReady_.store(true);
+      sppPassDone_.store(true);
     }
+  });
+}
+
+void Controller::startProgressive(int targetSpp, bool skipMedium) {
+  if (!scene_) return;
+  stop();
+  shutdown_ = false;
+  cancel_   = false;
+  sppPassDone_.store(false);
+  currentSpp_.store(0);
+  g_pathTracerSettings.skip_medium = skipMedium;
+
+  renderThread_ = std::thread([this, targetSpp]() {
+    // Snapshot all mutable state before rendering begins.
+    // From this point on, the render thread touches NO globals or shared mutable state.
+    RenderContext ctx(scene_->cam(), g_pathTracerSettings, g_gpSettings, scene_);
+
+    renderer_ = std::make_shared<Renderer>();
+    renderer_->setCancelFlag(&cancel_);
+    renderer_->prepareRender(ctx);
+
+    // Rebuild GP medium if kernel params changed
+    if (hasGpMedium_)
+        applyGpMedium();
+
+    // Keep old front buffer alive so display doesn't flicker black
+    int w = ctx.camera.width(), h = ctx.camera.height();
+    framebufferBack_ = std::make_shared<Framebuffer>(w, h);
+    if (!framebufferFront_ || framebufferFront_->width() != w || framebufferFront_->height() != h)
+        framebufferFront_ = std::make_shared<Framebuffer>(w, h);
+
+    renderer_->startRenderProgressive(ctx, targetSpp,
+        [&](int s) {
+          if (cancel_.load()) return;
+          // Deep copy renderer's averaged pixels → back buffer
+          const Framebuffer& rfb = *renderer_->getFramebuffer();
+          for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+              (*framebufferBack_)(x, y).rgb = rfb(x, y).rgb;
+          // Swap front/back
+          {
+            std::lock_guard<std::mutex> lock(displayMtx_);
+            std::swap(framebufferFront_, framebufferBack_);
+          }
+          currentSpp_.store(s);
+          sppPassDone_.store(true);
+        });
   });
 }
 
@@ -191,16 +274,64 @@ void Controller::stop() {
   shutdown_ = false;
 }
 
-bool Controller::isFrameReady() const {
-  return frameReady_.load();
+void Controller::saveDisplay(const std::string& path) const {
+  std::lock_guard<std::mutex> lock(displayMtx_);
+  if (framebufferFront_) framebufferFront_->save(path);
 }
 
-const Framebuffer& Controller::getFrameBuffer() const {
-  return *framebufferFront_;
+void Controller::copyDisplayRawTo(float* dst, int w, int h) const {
+  std::lock_guard<std::mutex> lock(displayMtx_);
+  if (!framebufferFront_) return;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      const Vec3f& v = (*framebufferFront_)(x, y).rgb;
+      int i = (y * w + x) * 3;
+      dst[i + 0] = v.x();
+      dst[i + 1] = v.y();
+      dst[i + 2] = v.z();
+    }
 }
 
-void Controller::consumeFrameBuffer() {
-  frameReady_.store(false);
+void Controller::copyDisplayTo(float* dst, int w, int h) const {
+  std::lock_guard<std::mutex> lock(displayMtx_);
+  if (!framebufferFront_) return;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      Vec3f v = framebufferFront_->tonemapped(x, y);
+      int i = (y * w + x) * 3;
+      dst[i + 0] = v.x();
+      dst[i + 1] = v.y();
+      dst[i + 2] = v.z();
+    }
+}
+
+void Controller::setGpMode(const std::string& v) {
+  gpMode_ = v;
+  if (v == "renewal_plus")
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::RenewalPlus;
+  else
+    g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization;
+}
+
+void Controller::applyGpMedium() {
+  if (!scene_) return;
+  std::shared_ptr<MeanFunction> mean;
+  if (gpMeanType_ == "sphere") {
+    mean = std::make_shared<SphereMeanFunction>(gpMeanCenter_, gpMeanRadius_);
+  }
+  if (!mean) return;
+
+  auto kernel = std::make_shared<SparseSEKernel>(
+      gpKernelSigma_, gpKernelLength_, Vector3f(1,1,1));
+  auto noiseGen = std::make_shared<SparseGPNoiseGenerator>(
+      kernel, gpPointsPerCell_);
+  auto newMedium = std::make_shared<GPMedium>(mean, noiseGen);
+
+  // Update all primitives that have an int_medium set
+  for (auto& prim : scene_->primitives_) {
+    if (prim->getIntMedium())
+      prim->setMedium(newMedium, prim->getExtMedium());
+  }
 }
 
 } // namespace mupsi

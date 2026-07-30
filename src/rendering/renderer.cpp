@@ -7,39 +7,48 @@
 namespace mupsi
 {
 
-  void Renderer::prepareRender(Scene& scene) { 
-    framebuffer_ = std::make_shared<Framebuffer>(scene.cam().width(), scene.cam().height());
+  void Renderer::prepareRender(const RenderContext& ctx) {
+    framebuffer_ = std::make_shared<Framebuffer>(ctx.camera.width(), ctx.camera.height());
 
-    for(auto& primitive: scene.primitives_) {
-      primitive->prepareForRender(); 
+    for(auto& primitive: ctx.scene->primitives_) {
+      primitive->prepareForRender();
     }
   }
 
-  void Renderer::startRender(Scene& scene, int spp) {
-    int w = scene.cam().width(), h = scene.cam().height();
-    float inv_k = 1.0f / spp;
+  void Renderer::startRender(const RenderContext& ctx, int spp) {
+    startRenderProgressive(ctx, spp);
+  }
+
+  bool Renderer::startRenderProgressive(const RenderContext& ctx, int targetSpp,
+                                        std::function<void(int)> onSpp) {
+    int w = ctx.camera.width(), h = ctx.camera.height();
     done_ = 0;
-    #pragma omp parallel for collapse(2)
-    for(int j = 0; j < h; j ++) {
-      for(int i = 0; i < w; i ++) {
-        if(cancel_ && cancel_->load()) {
-          framebuffer_->operator()(i, j) = Color({Vector3f::Zero()});
-          ++done_;
-          continue;
-        }
-        Vector3f emmision = Vector3f::Zero();
-        for(int k = 0; k < spp; k ++) {
+    targetSpp_ = targetSpp;
+
+    for (int k = 0; k < targetSpp; k++) {
+      if (cancel_ && cancel_->load()) return false;
+
+      #pragma omp parallel for collapse(2)
+      for (int j = 0; j < h; j++) {
+        for (int i = 0; i < w; i++) {
+          if (cancel_ && cancel_->load()) continue;
+
           PathTracer tracer;
-          emmision += tracer.trace(Vector2i(i, j), scene, 42, k);
+          Vector3f e = tracer.trace(Vector2i(i, j), ctx, 42, k);
+          framebuffer_->accumulate(i, j, e);
+          ++done_;
         }
-        emmision *= inv_k;
-        framebuffer_->operator()(i, j) = Color({emmision});
-        ++done_;
       }
+
+      framebuffer_->incrementSampleCount();
+
+      if (onSpp) onSpp(k + 1);
     }
+
+    return true;
   }
 
-  void Renderer::afterRender() { 
+  void Renderer::afterRender() {
     framebuffer_->save("test.png");
   }
 

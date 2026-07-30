@@ -130,12 +130,12 @@ namespace mupsi {
   
   
   // call it after the current condition is consumed
-  void GPMedium::sampleCondition(MediumSample& sample, Sampler& medium_sampler) const
+  void GPMedium::sampleCondition(MediumSample& sample, Sampler& medium_sampler, const GPSettings& gpSettings) const
   {
     uint32_t seed = medium_sampler.nextI();
 
     sample.conditioning->active = false;
-    if (g_gpSettings.gpMode == GPSettings::GPCorrelationMode::RenewalPlus && sample.exited == false) {
+    if (gpSettings.gpMode == GPSettings::GPCorrelationMode::RenewalPlus && sample.exited == false) {
 
       sample.conditioning->active = true;
       sample.conditioning->C = sample.p; 

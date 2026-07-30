@@ -23,6 +23,13 @@
           eigen
           opencv
           nlohmann_json
+          glfw3
+          libGL
+          xorg.libX11
+          xorg.libXrandr
+          xorg.libXinerama
+          xorg.libXcursor
+          xorg.libXi
         ];
 
         shellHook = ''
