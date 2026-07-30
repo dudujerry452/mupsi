@@ -50,6 +50,9 @@ public:
   // Early-exit shadow ray test. Returns true if any triangle occludes.
   bool occluded(const Ray& ray) const;
 
+  // Find closest point on mesh to p. If not found, return inf
+  float closest(const Vector3f& p, uint32_t& triIndex, Vector3f& out_p) const; 
+
   // Debug: brute-force intersect — loop every triangle, no BVH.
   bool intersectBruteForce(Ray& ray, IntersectionTemporary& data) const;
 
@@ -74,6 +77,7 @@ private:
   static bool rayTriIntersect(const Ray& ray,
                               const Vector3f& v0, const Vector3f& v1, const Vector3f& v2,
                               float& t, float& u, float& v);
+
 };
 
 } // namespace mupsi

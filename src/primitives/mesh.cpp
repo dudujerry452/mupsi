@@ -124,9 +124,6 @@ bool Mesh::fetchFrom(const std::string& filename) {
     return false;
   }
 
-  // Compute per-face geometric normals
-  computeFaceNormals();
-
   // Initialize BSDF with default (only if not already set by constructor)
   if (!bsdf_) {
     bsdf_ = Primitive::default_bsdf_;
@@ -325,4 +322,42 @@ const Bsdf* Mesh::getBsdf(int /*index*/) const {
   return bsdf_.get();
 }
 
-} // namespace mupsi
+float Mesh::distToPoint(const Vector3f& p, uint32_t& triIndex, Vector3f& out_p) const {
+  // Transform world-space point to local (object) space before querying BVH
+  Vector4f p_local4 = invTransform_ * Vector4f(p.x(), p.y(), p.z(), 1.0f);
+  Vector3f p_local = p_local4.head<3>();
+
+  Vector3f out_local;
+  float dist_local = bvh_.closest(p_local, triIndex, out_local);
+
+  // Transform closest point back to world space
+  Vector4f out_w4 = transform_ * Vector4f(out_local.x(), out_local.y(), out_local.z(), 1.0f);
+  out_p = out_w4.head<3>();
+
+  // Return world-space distance
+  return (out_p - p).norm();
+}
+
+bool Mesh::inside(const Vector3f& p) const {
+  // Transform world-space point to local space
+  Vector4f p_local4 = invTransform_ * Vector4f(p.x(), p.y(), p.z(), 1.0f);
+  Vector3f p_local = p_local4.head<3>();
+
+  Vector3f dir(1.0f, 0.0f, 0.0f);
+  Ray ray(p_local, dir);
+  IntersectionTemporary data;
+  int hitCount = 0;
+
+  if (bvh_.intersect(ray, data)) {
+    ++hitCount;
+    while (ray.farT() < std::numeric_limits<float>::infinity()) {
+      ray.setNearT(ray.farT() + 1e-4f); // small epsilon to avoid self-intersection
+      ray.setFarT(std::numeric_limits<float>::infinity());
+      if (!bvh_.intersect(ray, data)) break;
+      ++hitCount;
+    }
+  }
+
+  return (hitCount % 2) == 1;
+} 
+}// namespace mupsi

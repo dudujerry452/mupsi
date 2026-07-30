@@ -17,6 +17,68 @@ AABB BVH::triBounds(const Vector3f* v, const Vector3i& f) {
   return box;
 }
 
+float dist2ToAABB(const Vector3f& p, const AABB& box) {
+  float dx = std::max({box.min().x() - p.x(), 0.0f, p.x() - box.max().x()});
+  float dy = std::max({box.min().y() - p.y(), 0.0f, p.y() - box.max().y()});
+  float dz = std::max({box.min().z() - p.z(), 0.0f, p.z() - box.max().z()});
+  return dx*dx + dy*dy + dz*dz;
+}
+
+float dist2ToLine(const Vector3f& p, const Vector3f& a, const Vector3f& b, Vector3f& out_p) {
+  Vector3f ab = b - a;
+  Vector3f ap = p - a; 
+  if(ab.squaredNorm() < 1e-6f) {
+    out_p = a; 
+    return ap.squaredNorm();
+  }
+  float d = ap.dot(ab); 
+  float t = d / ab.squaredNorm();
+  t = std::clamp(t, 0.0f, 1.0f);
+  Vector3f proj = a + t * ab;
+  out_p = proj;
+  return (p - proj).squaredNorm(); 
+}
+
+float dist2ToTriangle(const Vector3f&p, const Vector3f* v, const Vector3i& f, Vector3f& out_p) {
+  const Vector3f& a = v[f.x()];
+  const Vector3f& b = v[f.y()];
+  const Vector3f& c = v[f.z()];
+
+  const Vector3f edge1 = a - b; 
+  const Vector3f edge2 = a - c;
+  Vector3f normal = edge1.cross(edge2);
+  
+  if(normal.squaredNorm() < 1e-6f) {
+    // degenerate triangle, return distance to vertex a
+    out_p = a; 
+    return (p - a).squaredNorm();
+  }
+  normal.normalize(); 
+
+  float distToPlane = (p - a).dot(normal);
+  Vector3f pjd = p - distToPlane * normal;
+  
+  Vector3f ab = -edge1; 
+  Vector3f bc = c - b;
+  Vector3f ca = edge2; 
+  Vector3f c1 = ab.cross(pjd - a); 
+  Vector3f c2 = bc.cross(pjd - b);
+  Vector3f c3 = ca.cross(pjd - c);
+  if(c1.dot(normal) >= 0 && c2.dot(normal) >= 0 && c3.dot(normal) >= 0) {
+    // pjd is inside the triangle
+    out_p = pjd;
+    return distToPlane * distToPlane;
+  } else {
+    // pjd is outside the triangle, return distance to closest edge or vertex
+    float minn = std::numeric_limits<float>::infinity(), d;
+    Vector3f tmp;
+    if(d = dist2ToLine(p, a, b, tmp) < minn) { minn = d; out_p = tmp; }
+    if(d = dist2ToLine(p, b, c, tmp) < minn) { minn = d; out_p = tmp; }
+    if(d = dist2ToLine(p, c, a, tmp) < minn) { minn = d; out_p = tmp; }
+    return minn;
+  }
+}
+
 bool BVH::rayTriIntersect(const Ray& ray,
                           const Vector3f& v0, const Vector3f& v1, const Vector3f& v2,
                           float& t, float& u, float& v) {
@@ -235,6 +297,57 @@ bool BVH::occluded(const Ray& ray) const {
   }
 
   return false;
+}
+
+float BVH::closest(const Vector3f& p, uint32_t& triIndex, Vector3f& out_p) const {
+
+  if (nodes_.empty()) return false;
+
+  uint32_t stack[64];
+  int32_t sp = 0;
+  stack[sp++] = rootIndex_;
+  
+  float min_dist = std::numeric_limits<float>::max();
+
+  while(sp > 0) {
+    uint32_t nodeIdx = stack[--sp]; 
+    const Node& node = nodes_[nodeIdx]; 
+
+    if(dist2ToAABB(p, node.bounds) >= min_dist) {
+      continue; 
+    }
+
+    if(node.isLeaf()) {
+      uint32_t start = node.leafStart();
+      uint32_t cnt   = node.leafCount();
+      for (uint32_t i = start; i < start + cnt; ++i) {
+        uint32_t ti = triIndices_[i];
+        const Vector3i& f = faces_[ti];
+        float dist = dist2ToTriangle(p, vertices_, f, out_p);
+        if(dist < min_dist) {
+          min_dist = dist;
+          triIndex = ti;
+        }
+      }
+    } else {
+      uint32_t left  = node.left;
+      uint32_t right = node.right;
+
+      float dist_left = dist2ToAABB(p, nodes_[left].bounds);
+      float dist_right = dist2ToAABB(p, nodes_[right].bounds);
+
+      if(dist_left < dist_right)  {
+        if(dist_right < min_dist) stack[sp++] = right;
+        if(dist_left < min_dist) stack[sp++] = left;
+      }
+      else {
+        if(dist_left < min_dist) stack[sp++] = left;
+        if(dist_right < min_dist) stack[sp++] = right;
+      }
+    }
+
+  }
+  return std::sqrt(min_dist);
 }
 
 // --- brute-force debug ---

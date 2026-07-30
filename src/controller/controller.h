@@ -40,9 +40,14 @@ float  gpKernelSigma_     = 1.0f;
 float  gpKernelLength_    = 1.0f;
 int    gpPointsPerCell_   = 3;
 std::string gpMode_       = "single_realization";
+std::string gpMeanType_  = "sphere";
+// sphere mean
 Eigen::Vector3f gpMeanCenter_  = Eigen::Vector3f::Zero();
 float    gpMeanRadius_    = 70.0f;
-std::string gpMeanType_  = "sphere";
+// mesh mean
+std::string gpMeanMeshFile_;
+Eigen::Vector3f gpMeanMeshPos_ = Eigen::Vector3f::Zero();
+float    gpMeanMeshScale_ = 1.0f;
 
 // Rebuild GPMedium on scene's primitives with current params
 void applyGpMedium();

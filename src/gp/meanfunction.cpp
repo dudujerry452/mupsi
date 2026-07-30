@@ -16,5 +16,20 @@ namespace mupsi
     return diff.normalized();
   }
 
+  float MeshMeanFunction::eval(const Vector3f& p) const {
+    float inside = mesh_->inside(p) ? -1.0f : 1.0f;
+    uint32_t tri; Vector3f out_p;
+    return inside * mesh_->distToPoint(p, tri, out_p);
+  }
+  Vector3f MeshMeanFunction::gradient(const Vector3f& p) const {
+    float inside = mesh_->inside(p) ? -1.0f : 1.0f;
+    uint32_t tri; Vector3f out_p;
+    float d = mesh_->distToPoint(p, tri, out_p);
+    if(d < 1e-6f) {
+      Vector3f n = mesh_->faceNormals_[tri];
+      return inside * n;
+    }
+    return (inside * (p - out_p)).normalized();
+  }
   
 } // namespace mupsi 

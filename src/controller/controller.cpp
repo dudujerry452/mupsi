@@ -11,6 +11,7 @@
 #include "bsdf/bsdf.h"
 #include "texture/texture.h"
 #include "medium/gpmedium.h"
+#include "medium/sdfmedium.h"
 #include "gp/gpnoise.h"
 #include "gp/meanfunction.h"
 #include "rendering/camera.h"
@@ -76,8 +77,9 @@ bool Controller::load(std::string config_path) {
       g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization;
   }
 
-  // --- GP medium ---
+  // --- GP / SDF medium ---
   std::shared_ptr<GPMedium> gpmedium;
+  std::shared_ptr<SDFMedium> sdfmedium;
   if (j.contains("gp_medium")) {
     const auto& gpm = j["gp_medium"];
 
@@ -88,6 +90,18 @@ bool Controller::load(std::string config_path) {
       Vector3f mc = jsonToVec3(gpm["mean_center"]);
       float     mr = gpm.value("mean_radius", 70.0f);
       mean = std::make_shared<SphereMeanFunction>(mc, mr);
+    } else if (meanType == "mesh") {
+      auto meshMean = std::make_shared<Mesh>();
+      if (!meshMean->fetchFrom(gpm["file"].get<std::string>())) {
+        std::cerr << "Controller::load failed to load gp_medium mesh: "
+                  << gpm["file"] << std::endl;
+        return false;
+      }
+      Vector3f pos = gpm.value("transform", json::object()).contains("position")
+          ? jsonToVec3(gpm["transform"]["position"]) : Vector3f::Zero();
+      float scl = gpm.value("transform", json::object()).value("scale", 1.0f);
+      meshMean->setTransform(Affine3f(Translation3f(pos) * Scaling(scl)).matrix());
+      mean = std::make_shared<MeshMeanFunction>(meshMean);
     } else {
       std::cerr << "Controller::load unknown mean_type: " << meanType << std::endl;
       return false;
@@ -107,11 +121,48 @@ bool Controller::load(std::string config_path) {
 
     hasGpMedium_      = true;
     gpMeanType_       = meanType;
-    gpMeanCenter_     = (meanType == "sphere") ? jsonToVec3(gpm["mean_center"]) : Vector3f::Zero();
-    gpMeanRadius_     = gpm.value("mean_radius", 70.0f);
+    if (meanType == "sphere") {
+      gpMeanCenter_ = jsonToVec3(gpm["mean_center"]);
+      gpMeanRadius_ = gpm.value("mean_radius", 70.0f);
+    } else if (meanType == "mesh") {
+      gpMeanMeshFile_  = gpm["file"].get<std::string>();
+      gpMeanMeshPos_   = gpm.value("transform", json::object()).contains("position")
+          ? jsonToVec3(gpm["transform"]["position"]) : Vector3f::Zero();
+      gpMeanMeshScale_ = gpm.value("transform", json::object()).value("scale", 1.0f);
+    }
     gpKernelSigma_    = sigma;
     gpKernelLength_   = length;
     gpPointsPerCell_  = ptsPerCell;
+  }
+
+  if (j.contains("sdf_medium")) {
+    const auto& sdfm = j["sdf_medium"];
+
+    // Mean function (same structure as gp_medium)
+    std::shared_ptr<MeanFunction> mean;
+    std::string meanType = sdfm.value("mean_type", std::string("sphere"));
+    if (meanType == "sphere") {
+      Vector3f mc = jsonToVec3(sdfm["mean_center"]);
+      float     mr = sdfm.value("mean_radius", 70.0f);
+      mean = std::make_shared<SphereMeanFunction>(mc, mr);
+    } else if (meanType == "mesh") {
+      auto meshMean = std::make_shared<Mesh>();
+      if (!meshMean->fetchFrom(sdfm["file"].get<std::string>())) {
+        std::cerr << "Controller::load failed to load sdf_medium mesh: "
+                  << sdfm["file"] << std::endl;
+        return false;
+      }
+      Vector3f pos = sdfm.value("transform", json::object()).contains("position")
+          ? jsonToVec3(sdfm["transform"]["position"]) : Vector3f::Zero();
+      float scl = sdfm.value("transform", json::object()).value("scale", 1.0f);
+      meshMean->setTransform(Affine3f(Translation3f(pos) * Scaling(scl)).matrix());
+      mean = std::make_shared<MeshMeanFunction>(meshMean);
+    } else {
+      std::cerr << "Controller::load unknown sdf_medium mean_type: " << meanType << std::endl;
+      return false;
+    }
+
+    sdfmedium = std::make_shared<SDFMedium>(mean);
   }
 
   // --- Skydrome ---
@@ -153,8 +204,9 @@ bool Controller::load(std::string config_path) {
         prim->setEmission(std::make_shared<ConstantTexture>(em));
       }
 
-      if (pj.contains("int_medium") && gpmedium) {
-        prim->setMedium(gpmedium, nullptr);
+      if (pj.contains("int_medium")) {
+        if (gpmedium) prim->setMedium(gpmedium, nullptr);
+        else if (sdfmedium) prim->setMedium(sdfmedium, nullptr);
       }
 
       scene_->addPrimitive(prim);
@@ -318,6 +370,16 @@ void Controller::applyGpMedium() {
   std::shared_ptr<MeanFunction> mean;
   if (gpMeanType_ == "sphere") {
     mean = std::make_shared<SphereMeanFunction>(gpMeanCenter_, gpMeanRadius_);
+  } else if (gpMeanType_ == "mesh") {
+    auto meshMean = std::make_shared<Mesh>();
+    if (!meshMean->fetchFrom(gpMeanMeshFile_)) {
+      std::cerr << "Controller::applyGpMedium failed to reload mesh: "
+                << gpMeanMeshFile_ << std::endl;
+      return;
+    }
+    meshMean->setTransform(
+        Affine3f(Translation3f(gpMeanMeshPos_) * Scaling(gpMeanMeshScale_)).matrix());
+    mean = std::make_shared<MeshMeanFunction>(meshMean);
   }
   if (!mean) return;
 

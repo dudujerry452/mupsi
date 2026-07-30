@@ -41,6 +41,12 @@ public:
   const Texture* getEmission() const override { return emission_.get(); }
   void setEmission(std::shared_ptr<Texture> emission) override { emission_ = emission; }
 
+  // --- Mesh interface ---
+  float distToPoint(const Vector3f& p, uint32_t& triIndex, Vector3f& out_p) const;
+  bool inside(const Vector3f& p) const; 
+
+  friend class MeshMeanFunction; // allow access to dist2ToPoint and inside
+
 private:
   // --- Geometry data (loaded from OBJ) ---
   std::vector<Vector3f> vertices_;
