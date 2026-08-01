@@ -115,9 +115,9 @@ bool Mesh::fetchFrom(const std::string& filename) {
 
   file.close();
 
-  std::cout << "Mesh::fetchFrom: loaded " << filename
-            << " (" << vertices_.size() << " vertices, "
-            << faces_.size() << " faces)" << std::endl;
+  // std::cout << "Mesh::fetchFrom: loaded " << filename
+  //           << " (" << vertices_.size() << " vertices, "
+  //           << faces_.size() << " faces)" << std::endl;
 
   if (vertices_.empty() || faces_.empty()) {
     std::cerr << "Mesh::fetchFrom: no valid geometry loaded" << std::endl;

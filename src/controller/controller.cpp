@@ -277,7 +277,16 @@ void Controller::startProgressive(int targetSpp, bool skipMedium) {
   currentSpp_.store(0);
   g_pathTracerSettings.skip_medium = skipMedium;
 
-  renderThread_ = std::thread([this, targetSpp]() {
+  // Resize front buffer BEFORE spawning thread, so copyDisplayTo
+  // never sees a stale undersized buffer.
+  int w = scene_->cam().width(), h = scene_->cam().height();
+  {
+    std::lock_guard<std::mutex> lock(displayMtx_);
+    if (!framebufferFront_ || framebufferFront_->width() != w || framebufferFront_->height() != h)
+        framebufferFront_ = std::make_shared<Framebuffer>(w, h);
+  }
+
+  renderThread_ = std::thread([this, targetSpp, w, h]() {
     // Snapshot all mutable state before rendering begins.
     // From this point on, the render thread touches NO globals or shared mutable state.
     RenderContext ctx(scene_->cam(), g_pathTracerSettings, g_gpSettings, scene_);
@@ -290,11 +299,7 @@ void Controller::startProgressive(int targetSpp, bool skipMedium) {
     if (hasGpMedium_)
         applyGpMedium();
 
-    // Keep old front buffer alive so display doesn't flicker black
-    int w = ctx.camera.width(), h = ctx.camera.height();
     framebufferBack_ = std::make_shared<Framebuffer>(w, h);
-    if (!framebufferFront_ || framebufferFront_->width() != w || framebufferFront_->height() != h)
-        framebufferFront_ = std::make_shared<Framebuffer>(w, h);
 
     renderer_->startRenderProgressive(ctx, targetSpp,
         [&](int s) {
