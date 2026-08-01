@@ -26,8 +26,11 @@ namespace mupsi
     uint32_t tri; Vector3f out_p;
     float d = mesh_->distToPoint(p, tri, out_p);
     if(d < 1e-6f) {
-      Vector3f n = mesh_->faceNormals_[tri];
-      return inside * n;
+      Vector3f n = mesh_->faceNormals_[tri];           // local-space
+      if (!mesh_->normalTransform_.isIdentity()) {
+        n = (mesh_->normalTransform_ * n).normalized();
+      }
+      return n; // faceNormal already points outward
     }
     return (inside * (p - out_p)).normalized();
   }

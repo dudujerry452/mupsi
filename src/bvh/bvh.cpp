@@ -72,9 +72,9 @@ float dist2ToTriangle(const Vector3f&p, const Vector3f* v, const Vector3i& f, Ve
     // pjd is outside the triangle, return distance to closest edge or vertex
     float minn = std::numeric_limits<float>::infinity(), d;
     Vector3f tmp;
-    if(d = dist2ToLine(p, a, b, tmp) < minn) { minn = d; out_p = tmp; }
-    if(d = dist2ToLine(p, b, c, tmp) < minn) { minn = d; out_p = tmp; }
-    if(d = dist2ToLine(p, c, a, tmp) < minn) { minn = d; out_p = tmp; }
+    if((d = dist2ToLine(p, a, b, tmp)) < minn) { minn = d; out_p = tmp; }
+    if((d = dist2ToLine(p, b, c, tmp)) < minn) { minn = d; out_p = tmp; }
+    if((d = dist2ToLine(p, c, a, tmp)) < minn) { minn = d; out_p = tmp; }
     return minn;
   }
 }
@@ -323,10 +323,12 @@ float BVH::closest(const Vector3f& p, uint32_t& triIndex, Vector3f& out_p) const
       for (uint32_t i = start; i < start + cnt; ++i) {
         uint32_t ti = triIndices_[i];
         const Vector3i& f = faces_[ti];
-        float dist = dist2ToTriangle(p, vertices_, f, out_p);
+        Vector3f tmp_p;
+        float dist = dist2ToTriangle(p, vertices_, f, tmp_p);
         if(dist < min_dist) {
           min_dist = dist;
           triIndex = ti;
+          out_p = tmp_p;
         }
       }
     } else {

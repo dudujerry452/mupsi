@@ -14,3 +14,4 @@ models
 *.hdr
 *.tgz
 *.tar.gz
+build.bak

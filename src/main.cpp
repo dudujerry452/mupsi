@@ -36,8 +36,9 @@ int main(int argc, char* argv[])
 
     while (!ctrl.isSppPassDone()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        std::cerr << "progress: " << ctrl.getRenderer()->getProgress() << "%" << std::endl;
+        std::cerr << "progress: " << ctrl.getRenderer()->getProgress() << "%\r"; 
     }
+    std::cout << std::endl; 
 
     std::cout << "Render complete. Saving " << outputPath << "..." << std::endl;
     ctrl.saveDisplay(outputPath);
