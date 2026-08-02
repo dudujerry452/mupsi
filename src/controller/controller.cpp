@@ -12,6 +12,7 @@
 #include "texture/texture.h"
 #include "medium/gpmedium.h"
 #include "medium/sdfmedium.h"
+#include "medium/externalgpmedium.h"
 #include "gp/gpnoise.h"
 #include "gp/meanfunction.h"
 #include "rendering/camera.h"
@@ -77,9 +78,10 @@ bool Controller::load(std::string config_path) {
       g_gpSettings.gpMode = GPSettings::GPCorrelationMode::SingleRealization;
   }
 
-  // --- GP / SDF medium ---
+  // --- GP / SDF / External GP medium ---
   std::shared_ptr<GPMedium> gpmedium;
   std::shared_ptr<SDFMedium> sdfmedium;
+  std::shared_ptr<ExternalGPMedium> extgpmedium;
   if (j.contains("gp_medium")) {
     const auto& gpm = j["gp_medium"];
 
@@ -165,6 +167,27 @@ bool Controller::load(std::string config_path) {
     sdfmedium = std::make_shared<SDFMedium>(mean);
   }
 
+  if (j.contains("external_gp_medium")) {
+    const auto& egpm = j["external_gp_medium"];
+    int res = egpm.value("resolution", 48);
+    Vector3f bmin = jsonToVec3(egpm["bounds_min"]);
+    Vector3f bmax = jsonToVec3(egpm["bounds_max"]);
+    float noiseScale = egpm.value("noise_scale", 1.0f);
+
+    // Resolve paths relative to config directory
+    std::string configDir = config_path.substr(0, config_path.find_last_of("/\\") + 1);
+    std::string meanPath = configDir + egpm["mean_file"].get<std::string>();
+    std::string varPath  = configDir + egpm.value("variance_file", std::string(""));
+
+    auto meanGrid = std::make_shared<GridMeanFunction>(meanPath, res, bmin, bmax);
+    std::shared_ptr<GridMeanFunction> varGrid;
+    if (!varPath.empty()) {
+      varGrid = std::make_shared<GridMeanFunction>(varPath, res, bmin, bmax);
+    }
+
+    extgpmedium = std::make_shared<ExternalGPMedium>(meanGrid, varGrid, noiseScale);
+  }
+
   // --- Skydrome ---
   if (j.contains("skydrome")) {
     auto skyTex = std::make_shared<BitmapTexture>(j["skydrome"].get<std::string>());
@@ -207,6 +230,7 @@ bool Controller::load(std::string config_path) {
       if (pj.contains("int_medium")) {
         if (gpmedium) prim->setMedium(gpmedium, nullptr);
         else if (sdfmedium) prim->setMedium(sdfmedium, nullptr);
+        else if (extgpmedium) prim->setMedium(extgpmedium, nullptr);
       }
 
       scene_->addPrimitive(prim);
